@@ -97,7 +97,15 @@ type
     Constains:TStrings;
   end;
 
+  TTriggerInfo = class
 
+  end;
+
+  TProcInfo = class
+
+
+
+  end;
 
 
 
