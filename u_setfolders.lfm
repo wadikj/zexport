@@ -1,0 +1,59 @@
+object frmSetFolders: TfrmSetFolders
+  Left = 544
+  Height = 111
+  Top = 245
+  Width = 496
+  Caption = 'Set app folders'
+  ClientHeight = 111
+  ClientWidth = 496
+  Font.Height = -17
+  OnClose = FormClose
+  OnCreate = FormCreate
+  LCLVersion = '2.0.10.0'
+  Scaled = False
+  object BitBtn1: TBitBtn
+    Left = 120
+    Height = 38
+    Top = 64
+    Width = 110
+    Default = True
+    DefaultCaption = True
+    Kind = bkOK
+    OnClick = BitBtn1Click
+    TabOrder = 0
+  end
+  object BitBtn2: TBitBtn
+    Left = 256
+    Height = 38
+    Top = 64
+    Width = 112
+    Cancel = True
+    DefaultCaption = True
+    Kind = bkCancel
+    ModalResult = 2
+    TabOrder = 1
+  end
+  object lePyPAth: TLabeledEdit
+    Left = 8
+    Height = 29
+    Top = 24
+    Width = 452
+    EditLabel.Height = 21
+    EditLabel.Width = 452
+    EditLabel.Caption = 'Путь к интерпретатору Python'
+    EditLabel.ParentColor = False
+    TabOrder = 2
+    Text = 'lePyPAth'
+  end
+  object sbPyPath: TSpeedButton
+    Left = 456
+    Height = 28
+    Top = 24
+    Width = 29
+    OnClick = sbPyPathClick
+  end
+  object OpenDialog1: TOpenDialog
+    Left = 384
+    Top = 64
+  end
+end

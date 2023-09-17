@@ -1,0 +1,77 @@
+object frmFind: TfrmFind
+  Left = 464
+  Height = 123
+  Top = 155
+  Width = 472
+  BorderStyle = bsDialog
+  Caption = 'Find text...'
+  ClientHeight = 123
+  ClientWidth = 472
+  Font.Height = -21
+  FormStyle = fsStayOnTop
+  OnClose = FormClose
+  OnCreate = FormCreate
+  LCLVersion = '2.0.10.0'
+  object lePattern: TLabeledEdit
+    Left = 8
+    Height = 33
+    Top = 32
+    Width = 336
+    EditLabel.Height = 25
+    EditLabel.Width = 336
+    EditLabel.Caption = 'Text to find'
+    EditLabel.ParentColor = False
+    TabOrder = 0
+    Text = 'lePattern'
+  end
+  object cbWholeWord: TCheckBox
+    Left = 8
+    Height = 29
+    Top = 64
+    Width = 132
+    Caption = 'Whole word'
+    TabOrder = 1
+  end
+  object cbCaseSensitive: TCheckBox
+    Left = 8
+    Height = 29
+    Top = 96
+    Width = 150
+    Caption = 'Case sensitive'
+    TabOrder = 2
+  end
+  object cbWholeScope: TCheckBox
+    Left = 200
+    Height = 29
+    Top = 64
+    Width = 141
+    Caption = 'Whole Scope'
+    TabOrder = 3
+  end
+  object btFind: TButton
+    Left = 368
+    Height = 33
+    Top = 8
+    Width = 96
+    Caption = 'Search!!!'
+    OnClick = btFindClick
+    TabOrder = 4
+  end
+  object btClose: TButton
+    Left = 368
+    Height = 33
+    Top = 56
+    Width = 96
+    Caption = 'Close'
+    OnClick = btCloseClick
+    TabOrder = 5
+  end
+  object cbBackward: TCheckBox
+    Left = 200
+    Height = 29
+    Top = 96
+    Width = 111
+    Caption = 'Backward'
+    TabOrder = 6
+  end
+end

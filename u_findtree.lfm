@@ -1,0 +1,105 @@
+object frmTreeFind: TfrmTreeFind
+  Left = 950
+  Height = 216
+  Top = 125
+  Width = 576
+  BorderStyle = bsSizeToolWin
+  Caption = 'Поиск...'
+  ClientHeight = 216
+  ClientWidth = 576
+  Font.Height = -17
+  FormStyle = fsStayOnTop
+  OnClose = FormClose
+  OnCreate = FormCreate
+  LCLVersion = '2.0.10.0'
+  Scaled = False
+  object leText: TLabeledEdit
+    Left = 8
+    Height = 29
+    Top = 24
+    Width = 416
+    EditLabel.Height = 21
+    EditLabel.Width = 416
+    EditLabel.Caption = 'Текст  для поиска'
+    EditLabel.ParentColor = False
+    TabOrder = 0
+  end
+  object brStart: TButton
+    Left = 432
+    Height = 48
+    Top = 24
+    Width = 136
+    Caption = 'Искать...'
+    OnClick = brStartClick
+    TabOrder = 1
+  end
+  object btClose: TButton
+    Left = 432
+    Height = 48
+    Top = 80
+    Width = 136
+    Caption = 'Закрыть'
+    OnClick = btCloseClick
+    TabOrder = 2
+  end
+  object cbCaseSens: TCheckBox
+    Left = 8
+    Height = 25
+    Top = 56
+    Width = 164
+    Caption = 'Резистрозависимо'
+    TabOrder = 3
+  end
+  object rgStart: TRadioGroup
+    Left = 8
+    Height = 131
+    Top = 80
+    Width = 192
+    AutoFill = True
+    Caption = 'Облать поиска'
+    ChildSizing.LeftRightSpacing = 6
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.EnlargeVertical = crsHomogenousChildResize
+    ChildSizing.ShrinkHorizontal = crsScaleChilds
+    ChildSizing.ShrinkVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 1
+    ClientHeight = 105
+    ClientWidth = 188
+    ItemIndex = 1
+    Items.Strings = (
+      'С начала'
+      'С тек элемента'
+      'В дочерних'
+    )
+    TabOrder = 4
+  end
+  object cgArea: TCheckGroup
+    Left = 208
+    Height = 147
+    Top = 64
+    Width = 216
+    AutoFill = True
+    Caption = 'Искать в'
+    ChildSizing.LeftRightSpacing = 6
+    ChildSizing.TopBottomSpacing = 6
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.EnlargeVertical = crsHomogenousChildResize
+    ChildSizing.ShrinkHorizontal = crsScaleChilds
+    ChildSizing.ShrinkVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 1
+    ClientHeight = 121
+    ClientWidth = 212
+    Items.Strings = (
+      'Тегах '
+      'Параметрах'
+      'Значениях параметров'
+      'В тексте'
+    )
+    TabOrder = 5
+    Data = {
+      0400000002020202
+    }
+  end
+end

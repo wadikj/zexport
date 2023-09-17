@@ -1,0 +1,347 @@
+object frmMain: TfrmMain
+  Left = 309
+  Height = 529
+  Top = 190
+  Width = 1201
+  Caption = 'ZExport'
+  ClientHeight = 510
+  ClientWidth = 1201
+  Font.Height = -20
+  Menu = MainMenu1
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnShowHint = FormShowHint
+  ShowHint = True
+  LCLVersion = '2.0.10.0'
+  WindowState = wsMaximized
+  object PageControl1: TPageControl
+    Left = 0
+    Height = 462
+    Top = 28
+    Width = 1201
+    ActivePage = TabSheet1
+    Align = alClient
+    Font.Height = -13
+    ParentFont = False
+    ParentShowHint = False
+    ShowHint = True
+    TabIndex = 0
+    TabOrder = 0
+    OnMouseMove = PageControl1MouseMove
+    Options = [nboShowCloseButtons, nboKeyboardTabSwitch]
+    object TabSheet1: TTabSheet
+      Caption = 'Log'
+      ClientHeight = 433
+      ClientWidth = 1193
+      ParentShowHint = False
+      ShowHint = True
+      object mmLog: TMemo
+        Left = 0
+        Height = 433
+        Top = 0
+        Width = 1193
+        Align = alClient
+        HideSelection = False
+        Lines.Strings = (
+          'Memo1'
+        )
+        ScrollBars = ssAutoBoth
+        TabOrder = 0
+      end
+    end
+  end
+  object StatusBar1: TStatusBar
+    Left = 0
+    Height = 20
+    Top = 490
+    Width = 1201
+    Font.Height = -13
+    Panels = <>
+    ParentFont = False
+  end
+  object tb: TToolBar
+    Left = 0
+    Height = 28
+    Top = 0
+    Width = 1201
+    AutoSize = True
+    ButtonHeight = 24
+    ButtonWidth = 23
+    EdgeBorders = [ebLeft, ebTop, ebRight, ebBottom]
+    Flat = False
+    Font.Height = -16
+    ParentFont = False
+    ShowCaptions = True
+    TabOrder = 2
+    object tbNewIE: TToolButton
+      Left = 3
+      Top = 2
+      Action = acNewBrowser
+      AutoSize = True
+      Caption = 'New IE'
+    end
+    object tbCloseActive: TToolButton
+      Left = 62
+      Top = 2
+      Action = acCloseActive
+    end
+    object tbPageCode: TToolButton
+      Left = 228
+      Top = 2
+      Action = acViewText
+    end
+    object tbScr: TToolButton
+      Left = 436
+      Top = 2
+      Caption = 'scr'
+      OnClick = tbScrClick
+    end
+    object tbStopExec: TToolButton
+      Left = 550
+      Top = 2
+      Caption = 'STOP!!!'
+      OnClick = tbStopExecClick
+    end
+    object bttree: TToolButton
+      Left = 330
+      Top = 2
+      Action = acTree
+    end
+    object tbOptions: TToolButton
+      Left = 464
+      Top = 2
+      Caption = 'Настройки'
+      Visible = False
+    end
+    object tbHideWin: TToolButton
+      Left = 610
+      Top = 2
+      Caption = 'Свернуть'
+      OnClick = tbHideWinClick
+    end
+  end
+  object ActionList1: TActionList
+    Left = 192
+    Top = 200
+    object acNewBrowser: TAction
+      Category = 'browser'
+      Caption = 'Новый IE'
+      Hint = 'Новое окно Браузера'
+      ImageIndex = 0
+      OnExecute = acNewBrowserExecute
+      ShortCut = 16462
+    end
+    object acCloseActive: TAction
+      Category = 'browser'
+      Caption = 'Закрыть тек. вкладку'
+      Hint = 'Закрывает кекущую вкладку'
+      ImageIndex = 1
+      OnExecute = acCloseActiveExecute
+      ShortCut = 16499
+    end
+    object acTree: TAction
+      Category = 'browser'
+      Caption = 'Дерево тегов'
+      Hint = 'Показывает HTML в виде дерева для текущего браузера'
+      ImageIndex = 2
+      OnExecute = acTreeExecute
+      ShortCut = 16468
+    end
+    object acViewText: TAction
+      Category = 'browser'
+      Caption = 'Код станицы'
+      Hint = 'Показывает исходный код текщего браузера'
+      ImageIndex = 3
+      OnExecute = acViewTextExecute
+      ShortCut = 16456
+    end
+    object acExit: TAction
+      Category = 'proj'
+      Caption = 'Выход'
+      OnExecute = acExitExecute
+      ShortCut = 32883
+    end
+    object acOptions: TAction
+      Category = 'Tools'
+      Caption = 'acOptions'
+    end
+    object acStop: TAction
+      Category = 'Tools'
+    end
+    object acMiniLog: TAction
+      Category = 'proj'
+      Caption = 'Мини лог'
+      OnExecute = acMiniLogExecute
+      ShortCut = 16460
+    end
+    object acForms: TAction
+      Category = 'Tools'
+      Caption = 'Формы проекта'
+      OnExecute = acFormsExecute
+    end
+    object acNewText: TAction
+      Category = 'proj'
+      Caption = 'Новый текстовый документ'
+      OnExecute = acNewTextClick
+    end
+    object acNewDataScr: TAction
+      Category = 'proj'
+      Caption = 'Скрипт данных'
+      OnExecute = acNewDataScriptClick
+    end
+    object acNewPyScr: TAction
+      Category = 'proj'
+      Caption = 'Скрипт питонга'
+      OnExecute = acNewPyScriptClick
+    end
+    object acNewHTML: TAction
+      Category = 'proj'
+      Caption = 'Документ HTML'
+      OnExecute = miNewHTMLClick
+    end
+    object acSaveProj: TAction
+      Category = 'proj'
+      Caption = 'Сохранить проект'
+      OnExecute = acSaveProjExecute
+    end
+    object acNewProject: TAction
+      Category = 'proj'
+      Caption = 'Новый поект...'
+      OnExecute = acNewProjectExecute
+    end
+    object acOpenProject: TAction
+      Category = 'proj'
+      Caption = 'Открыть...'
+      OnExecute = acOpenProjectExecute
+    end
+    object acDBs: TAction
+      Category = 'Tools'
+      Caption = 'Доступные БД...'
+      OnExecute = acDBsExecute
+    end
+    object acFontSizes: TAction
+      Category = 'Tools'
+      Caption = 'Размеры шрифтов'
+      OnExecute = acFontSizesExecute
+    end
+  end
+  object MainMenu1: TMainMenu
+    Left = 192
+    Top = 96
+    object miProj: TMenuItem
+      Caption = 'Проект'
+      object miNew: TMenuItem
+        Caption = 'Новый'
+        object miNewProject: TMenuItem
+          Action = acNewProject
+        end
+        object N1: TMenuItem
+          Caption = '-'
+        end
+        object miNewDataScr: TMenuItem
+          Action = acNewDataScr
+        end
+        object miNewHTML: TMenuItem
+          Action = acNewHTML
+        end
+        object miNewText: TMenuItem
+          Action = acNewText
+        end
+        object miNewPy: TMenuItem
+          Action = acNewPyScr
+        end
+      end
+      object miOpenProjects: TMenuItem
+        Caption = 'Открыть проект'
+        object miOpenPrj: TMenuItem
+          Action = acOpenProject
+        end
+        object miPrjListStart: TMenuItem
+          Caption = '-'
+          Visible = False
+        end
+      end
+      object miSavePrj: TMenuItem
+        Action = acSaveProj
+      end
+      object N2: TMenuItem
+        Caption = '-'
+      end
+      object miMiniLog: TMenuItem
+        Action = acMiniLog
+      end
+      object miMRUStart: TMenuItem
+        Caption = '-'
+      end
+      object miMRUEnd: TMenuItem
+        Caption = '-'
+        Visible = False
+      end
+      object miExit: TMenuItem
+        Action = acExit
+        OnClick = miExitClick
+      end
+    end
+    object miBrowser: TMenuItem
+      Caption = 'Браузер'
+      object miNewIE: TMenuItem
+        Action = acNewBrowser
+      end
+      object miCloseActive: TMenuItem
+        Action = acCloseActive
+      end
+      object miTree: TMenuItem
+        Action = acTree
+      end
+      object miViewAsText: TMenuItem
+        Action = acViewText
+      end
+    end
+    object miTools: TMenuItem
+      Caption = 'Tools'
+      object miForms: TMenuItem
+        Action = acForms
+      end
+      object miIEVer: TMenuItem
+        Caption = 'Set IE version...'
+        OnClick = miIEVerClick
+      end
+      object miSetFolders: TMenuItem
+        Caption = 'Folders...'
+        OnClick = miSetFoldersClick
+      end
+      object miEditButtons: TMenuItem
+        Caption = 'Buttons...'
+        OnClick = miEditButtonsClick
+      end
+      object MenuItem1: TMenuItem
+        Action = acFontSizes
+      end
+      object miSaveSettings: TMenuItem
+        Caption = 'Save Settings'
+        OnClick = miSaveSettingsClick
+      end
+      object miSQL: TMenuItem
+        Caption = 'SQL'
+        object miDBs: TMenuItem
+          Action = acDBs
+        end
+        object miDBListStart: TMenuItem
+          Caption = '-'
+        end
+      end
+    end
+    object miUser: TMenuItem
+      Caption = 'User Menu'
+    end
+  end
+  object ApplicationProperties1: TApplicationProperties
+    OnHint = ApplicationProperties1Hint
+    Left = 192
+    Top = 152
+  end
+  object OpenDialog1: TOpenDialog
+    Left = 192
+    Top = 256
+  end
+end

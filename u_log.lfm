@@ -1,0 +1,43 @@
+object frLog: TfrLog
+  Left = 0
+  Height = 413
+  Top = 0
+  Width = 640
+  ClientHeight = 413
+  ClientWidth = 640
+  ParentFont = False
+  TabOrder = 0
+  DesignLeft = 684
+  DesignTop = 385
+  object ToolBar1: TToolBar
+    Left = 0
+    Height = 26
+    Top = 0
+    Width = 640
+    ButtonHeight = 32
+    ButtonWidth = 33
+    Caption = 'ToolBar1'
+    Images = ImageList1
+    ParentFont = False
+    TabOrder = 0
+  end
+  object Memo1: TMemo
+    Left = 0
+    Height = 387
+    Top = 26
+    Width = 640
+    Align = alClient
+    Font.Height = -19
+    Lines.Strings = (
+      'Memo1'
+    )
+    ParentFont = False
+    TabOrder = 1
+  end
+  object ImageList1: TImageList
+    Height = 24
+    Width = 24
+    Left = 186
+    Top = 104
+  end
+end

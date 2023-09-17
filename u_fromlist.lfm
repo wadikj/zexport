@@ -1,0 +1,70 @@
+object frmWinList: TfrmWinList
+  Left = 630
+  Height = 394
+  Top = 192
+  Width = 255
+  Caption = 'Список окон'
+  ClientHeight = 394
+  ClientWidth = 255
+  Font.Height = -16
+  OnClose = FormClose
+  OnCreate = FormCreate
+  LCLVersion = '2.0.10.0'
+  object lb: TListBox
+    Left = 8
+    Height = 304
+    Top = 8
+    Width = 240
+    Font.Height = -16
+    ItemHeight = 0
+    OnDblClick = lbDblClick
+    ParentFont = False
+    TabOrder = 0
+  end
+  object btShow: TButton
+    Left = 6
+    Height = 28
+    Top = 320
+    Width = 107
+    Caption = 'Показать'
+    Font.Height = -16
+    OnClick = btShowClick
+    ParentFont = False
+    TabOrder = 1
+  end
+  object btCancel: TButton
+    Left = 128
+    Height = 28
+    Top = 358
+    Width = 114
+    Cancel = True
+    Caption = 'Отмена'
+    Default = True
+    Font.Height = -16
+    OnClick = btCancelClick
+    ParentFont = False
+    TabOrder = 2
+  end
+  object btClose: TButton
+    Left = 128
+    Height = 28
+    Top = 320
+    Width = 114
+    Caption = 'Закрыть'
+    Font.Height = -16
+    OnClick = btCloseClick
+    ParentFont = False
+    TabOrder = 3
+  end
+  object btCenter: TButton
+    Left = 6
+    Height = 28
+    Top = 358
+    Width = 107
+    Caption = 'По центру'
+    Font.Height = -16
+    OnClick = btCenterClick
+    ParentFont = False
+    TabOrder = 4
+  end
+end

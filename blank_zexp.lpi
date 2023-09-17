@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="11"/>
+    <PathDelim Value="\"/>
+    <General>
+      <SessionStorage Value="InProjectDir"/>
+      <MainUnit Value="0"/>
+      <AutoCreateForms Value="False"/>
+      <Title Value="blank_zexp"/>
+      <UseAppBundle Value="False"/>
+      <ResourceType Value="res"/>
+      <UseXPManifest Value="True"/>
+      <Icon Value="0"/>
+    </General>
+    <i18n>
+      <EnableI18N LFM="False"/>
+    </i18n>
+    <BuildModes Count="1">
+      <Item1 Name="Default" Default="True"/>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes Count="1">
+        <Mode0 Name="default"/>
+      </Modes>
+    </RunParams>
+    <RequiredPackages Count="8">
+      <Item1>
+        <PackageName Value="LazUtils"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="FCL"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="SQLDBLaz"/>
+      </Item3>
+      <Item4>
+        <PackageName Value="DateTimeCtrls"/>
+      </Item4>
+      <Item5>
+        <PackageName Value="SynEdit"/>
+      </Item5>
+      <Item6>
+        <PackageName Value="SHDocVw_1_1_TLBP"/>
+      </Item6>
+      <Item7>
+        <PackageName Value="LazActiveX"/>
+      </Item7>
+      <Item8>
+        <PackageName Value="LCL"/>
+      </Item8>
+    </RequiredPackages>
+    <Units Count="25">
+      <Unit0>
+        <Filename Value="blank_zexp.lpr"/>
+        <IsPartOfProject Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="shdocvw_1_1_tlb.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="SHDocVw_1_1_TLB"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="mshtml_4_0_tlb.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="MSHTML_4_0_TLB"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="main.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmMain"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="u_browse.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frBrowse"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="u_htree.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frTree"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="u_textview.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frTextView"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="h_tools.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="u_scr.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmScr"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="u_simplescr.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="U_simplescr"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="u_data.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Data"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="DataModule"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="u_minilog.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmMiniLog"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="u_miniLog"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="u_fromlist.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmWinList"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="testreg.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmSetIEVer"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="u_setfolders.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmSetFolders"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="u_buttons.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmEditButtons"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="u_synsearch.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmFind"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="u_SynSearch"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="u_log.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frLog"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="u_findtree.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmTreeFind"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="u_frsql.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frSQL"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+        <UnitName Value="u_frSQL"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="u_sqliteinfo.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit20>
+      <Unit21>
+        <Filename Value="u_connlist.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmConnList"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="u_connList"/>
+      </Unit21>
+      <Unit22>
+        <Filename Value="u_newconn.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmNewConn"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="u_newConn"/>
+      </Unit22>
+      <Unit23>
+        <Filename Value="u_fbinfo.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit23>
+      <Unit24>
+        <Filename Value="u_fsizes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmFSizes"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit24>
+    </Units>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <PathDelim Value="\"/>
+    <Target>
+      <Filename Value="blank_zexp"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)"/>
+      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+    <CodeGeneration>
+      <Optimizations>
+        <OptimizationLevel Value="0"/>
+      </Optimizations>
+    </CodeGeneration>
+    <Linking>
+      <Options>
+        <Win32>
+          <GraphicApplication Value="True"/>
+        </Win32>
+      </Options>
+    </Linking>
+    <Other>
+      <CompilerMessages>
+        <IgnoredMessages idx6058="True" idx3124="True" idx3123="True"/>
+      </CompilerMessages>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="6">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+      <Item4>
+        <Name Value="EVariantTypeCastError"/>
+      </Item4>
+      <Item5>
+        <Name Value="EOleException"/>
+      </Item5>
+      <Item6>
+        <Name Value="EGridException"/>
+      </Item6>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

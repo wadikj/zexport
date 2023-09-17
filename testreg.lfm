@@ -1,0 +1,51 @@
+object frmSetIEVer: TfrmSetIEVer
+  Left = 867
+  Height = 393
+  Top = 192
+  Width = 277
+  BorderStyle = bsDialog
+  Caption = 'IE Mode'
+  ClientHeight = 393
+  ClientWidth = 277
+  Font.Height = -23
+  OnClose = FormClose
+  OnCreate = FormCreate
+  LCLVersion = '2.0.10.0'
+  Scaled = False
+  object btSetKey: TButton
+    Left = 8
+    Height = 39
+    Top = 344
+    Width = 255
+    Caption = 'Установить'
+    OnClick = btSetKeyClick
+    TabOrder = 0
+  end
+  object Label1: TLabel
+    Left = 8
+    Height = 28
+    Top = 8
+    Width = 261
+    Caption = 'Использовать версию IE'
+    ParentColor = False
+  end
+  object lbVer: TListBox
+    Left = 8
+    Height = 288
+    Top = 48
+    Width = 257
+    Items.Strings = (
+      'IE 11 Direct - 11001'
+      'IE 11 - 11000'
+      'IE10 Direct - 10001'
+      'IE 10 - 10000'
+      'IE 9 Direct - 9999'
+      'IE 9 - 9000'
+      'IE 8 Direct - 8888'
+      'IE 8 - 8000'
+      'IE 7 - 7000'
+    )
+    ItemHeight = 28
+    TabOrder = 1
+  end
+end

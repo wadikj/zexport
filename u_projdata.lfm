@@ -1,0 +1,153 @@
+object frmProjOpts: TfrmProjOpts
+  Left = 205
+  Height = 244
+  Top = 165
+  Width = 427
+  Caption = 'Свойства проекта'
+  ClientHeight = 244
+  ClientWidth = 427
+  Font.Height = -16
+  OnClose = FormClose
+  LCLVersion = '2.0.10.0'
+  object leName: TLabeledEdit
+    Left = 154
+    Height = 27
+    Top = 6
+    Width = 230
+    EditLabel.Height = 19
+    EditLabel.Width = 132
+    EditLabel.Caption = 'Название проекта'
+    EditLabel.ParentColor = False
+    EditLabel.ParentFont = False
+    EditLabel.Font.Height = -16
+    Font.Height = -16
+    LabelPosition = lpLeft
+    ParentFont = False
+    TabOrder = 0
+    Text = 'leName'
+  end
+  object LeMainFolder: TLabeledEdit
+    Left = 154
+    Height = 27
+    Top = 38
+    Width = 230
+    EditLabel.Height = 19
+    EditLabel.Width = 108
+    EditLabel.Caption = 'Папка проекта'
+    EditLabel.ParentColor = False
+    EditLabel.ParentFont = False
+    EditLabel.Font.Height = -16
+    Font.Height = -16
+    LabelPosition = lpLeft
+    ParentFont = False
+    TabOrder = 1
+    Text = 'LeMainFolder'
+  end
+  object leScrDir: TLabeledEdit
+    Left = 154
+    Height = 27
+    Top = 70
+    Width = 230
+    EditLabel.Height = 19
+    EditLabel.Width = 116
+    EditLabel.Caption = 'Папка скриптов'
+    EditLabel.ParentColor = False
+    EditLabel.ParentFont = False
+    EditLabel.Font.Height = -16
+    Font.Height = -16
+    LabelPosition = lpLeft
+    ParentFont = False
+    TabOrder = 2
+    Text = 'leScrDir'
+  end
+  object leBDDir: TLabeledEdit
+    Left = 154
+    Height = 27
+    Top = 102
+    Width = 230
+    EditLabel.Height = 19
+    EditLabel.Width = 69
+    EditLabel.Caption = 'Папка БД'
+    EditLabel.ParentColor = False
+    EditLabel.ParentFont = False
+    EditLabel.Font.Height = -16
+    Font.Height = -16
+    LabelPosition = lpLeft
+    ParentFont = False
+    TabOrder = 3
+    Text = 'leBDDir'
+  end
+  object leDataDir: TLabeledEdit
+    Left = 154
+    Height = 27
+    Top = 134
+    Width = 230
+    EditLabel.Height = 19
+    EditLabel.Width = 103
+    EditLabel.Caption = 'Папка данных'
+    EditLabel.ParentColor = False
+    EditLabel.ParentFont = False
+    EditLabel.Font.Height = -16
+    Font.Height = -16
+    LabelPosition = lpLeft
+    ParentFont = False
+    TabOrder = 4
+    Text = 'leDataDir'
+  end
+  object SpeedButton1: TSpeedButton
+    Left = 384
+    Height = 29
+    Top = 38
+    Width = 30
+    Font.Height = -16
+    OnClick = SpeedButton1Click
+    ParentFont = False
+  end
+  object BitBtn1: TBitBtn
+    Left = 102
+    Height = 30
+    Top = 205
+    Width = 90
+    Default = True
+    DefaultCaption = True
+    Font.Height = -16
+    Kind = bkOK
+    OnClick = BitBtn1Click
+    ParentFont = False
+    TabOrder = 5
+  end
+  object BitBtn2: TBitBtn
+    Left = 224
+    Height = 30
+    Top = 205
+    Width = 90
+    Cancel = True
+    DefaultCaption = True
+    Font.Height = -16
+    Kind = bkCancel
+    ModalResult = 2
+    ParentFont = False
+    TabOrder = 6
+  end
+  object leFlask: TLabeledEdit
+    Left = 154
+    Height = 27
+    Top = 166
+    Width = 230
+    EditLabel.Height = 19
+    EditLabel.Width = 84
+    EditLabel.Caption = 'Папка Flask'
+    EditLabel.ParentColor = False
+    EditLabel.ParentFont = False
+    EditLabel.Font.Height = -16
+    Font.Height = -16
+    LabelPosition = lpLeft
+    ParentFont = False
+    TabOrder = 7
+    Text = 'leFlask'
+  end
+  object SelectDirectoryDialog1: TSelectDirectoryDialog
+    Left = 390
+    Top = 89
+  end
+end

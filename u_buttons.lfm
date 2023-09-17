@@ -1,0 +1,154 @@
+object frmEditButtons: TfrmEditButtons
+  Left = 431
+  Height = 504
+  Top = 189
+  Width = 651
+  Caption = 'Редактор кнопок'
+  ClientHeight = 504
+  ClientWidth = 651
+  Font.Height = -21
+  OnClose = FormClose
+  OnCreate = FormCreate
+  LCLVersion = '2.0.10.0'
+  object lbItems: TListBox
+    Left = 8
+    Height = 488
+    Top = 8
+    Width = 312
+    ItemHeight = 0
+    OnSelectionChange = lbItemsSelectionChange
+    TabOrder = 0
+  end
+  object leBtnText: TLabeledEdit
+    Left = 328
+    Height = 33
+    Top = 136
+    Width = 316
+    EditLabel.Height = 25
+    EditLabel.Width = 316
+    EditLabel.Caption = 'Надпись на кнопке'
+    EditLabel.ParentColor = False
+    TabOrder = 1
+    Text = 'leBtnText'
+  end
+  object leMenuText: TLabeledEdit
+    Left = 328
+    Height = 33
+    Top = 200
+    Width = 316
+    EditLabel.Height = 25
+    EditLabel.Width = 316
+    EditLabel.Caption = 'Надпись в меню'
+    EditLabel.ParentColor = False
+    TabOrder = 2
+    Text = 'leMenuText'
+  end
+  object Label1: TLabel
+    Left = 328
+    Height = 25
+    Top = 288
+    Width = 99
+    Caption = 'Подсказка'
+    ParentColor = False
+  end
+  object mmHint: TMemo
+    Left = 328
+    Height = 80
+    Top = 320
+    Width = 316
+    Lines.Strings = (
+      'Memo1'
+    )
+    TabOrder = 3
+  end
+  object Label2: TLabel
+    Left = 328
+    Height = 25
+    Top = 8
+    Width = 36
+    Caption = 'Тип'
+    ParentColor = False
+  end
+  object cbType: TComboBox
+    Left = 376
+    Height = 33
+    Top = 8
+    Width = 268
+    ItemHeight = 25
+    ItemIndex = 0
+    Items.Strings = (
+      'DataScript'
+      'Python Script'
+      'Other Executable'
+    )
+    Style = csDropDownList
+    TabOrder = 4
+    Text = 'DataScript'
+  end
+  object leCmd: TLabeledEdit
+    Left = 328
+    Height = 33
+    Top = 72
+    Width = 280
+    EditLabel.Height = 25
+    EditLabel.Width = 280
+    EditLabel.Caption = 'Команда'
+    EditLabel.ParentColor = False
+    TabOrder = 5
+    Text = 'leCmd'
+  end
+  object leHotKey: TLabeledEdit
+    Left = 328
+    Height = 33
+    Top = 256
+    Width = 316
+    EditLabel.Height = 25
+    EditLabel.Width = 316
+    EditLabel.Caption = 'Хоткей'
+    EditLabel.ParentColor = False
+    TabOrder = 6
+    Text = 'leHotKey'
+  end
+  object btNew: TButton
+    Left = 328
+    Height = 32
+    Top = 408
+    Width = 88
+    Caption = 'Новый'
+    OnClick = btNewClick
+    TabOrder = 7
+  end
+  object btChange: TButton
+    Left = 432
+    Height = 32
+    Top = 408
+    Width = 104
+    Caption = 'Изменить'
+    OnClick = btChangeClick
+    TabOrder = 8
+  end
+  object btDel: TButton
+    Left = 556
+    Height = 32
+    Top = 408
+    Width = 88
+    Caption = 'Удолить'
+    OnClick = btDelClick
+    TabOrder = 9
+  end
+  object BtClose: TButton
+    Left = 528
+    Height = 32
+    Top = 464
+    Width = 116
+    Caption = 'Зокрыть!!!'
+    OnClick = BtCloseClick
+    TabOrder = 10
+  end
+  object SpeedButton1: TSpeedButton
+    Left = 610
+    Height = 33
+    Top = 72
+    Width = 34
+  end
+end
