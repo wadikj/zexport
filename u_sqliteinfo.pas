@@ -250,7 +250,6 @@ end;
 { TSQLiteDB }
 
 function TSQLiteDB.GetDS(ASQL: string): TSQLQuery;
-//var T:TSQLTransaction;
 begin
   Result:=TSQLQuery.Create(nil);
   Result.DataBase:=FConnection;

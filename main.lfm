@@ -224,6 +224,24 @@ object frmMain: TfrmMain
       Caption = 'Размеры шрифтов'
       OnExecute = acFontSizesExecute
     end
+    object acHideButtons: TAction
+      Category = 'view'
+      Caption = 'Hide Buttons'
+      OnExecute = acHideButtonsExecute
+      OnUpdate = acHideButtonsUpdate
+    end
+    object acHideTabs: TAction
+      Category = 'view'
+      Caption = 'Hide Tabs'
+      OnExecute = acHideTabsExecute
+      OnUpdate = acHideTabsUpdate
+    end
+    object acShowLog: TAction
+      Category = 'view'
+      Caption = 'Log'
+      OnExecute = acShowLogExecute
+      OnUpdate = acShowLogUpdate
+    end
   end
   object MainMenu1: TMainMenu
     Left = 192
@@ -299,9 +317,6 @@ object frmMain: TfrmMain
     end
     object miTools: TMenuItem
       Caption = 'Tools'
-      object miForms: TMenuItem
-        Action = acForms
-      end
       object miIEVer: TMenuItem
         Caption = 'Set IE version...'
         OnClick = miIEVerClick
@@ -332,7 +347,25 @@ object frmMain: TfrmMain
       end
     end
     object miUser: TMenuItem
-      Caption = 'User Menu'
+      Caption = 'User_Menu'
+    end
+    object miView: TMenuItem
+      Caption = 'View'
+      object miTabs: TMenuItem
+        Caption = 'Tabs'
+        object MenuItem5: TMenuItem
+          Action = acShowLog
+        end
+      end
+      object MenuItem2: TMenuItem
+        Action = acForms
+      end
+      object MenuItem3: TMenuItem
+        Action = acHideTabs
+      end
+      object MenuItem4: TMenuItem
+        Action = acHideButtons
+      end
     end
   end
   object ApplicationProperties1: TApplicationProperties

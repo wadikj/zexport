@@ -31,12 +31,21 @@ type
     acOpenProject: TAction;
     acDBs: TAction;
     acFontSizes: TAction;
+    acHideButtons: TAction;
+    acHideTabs: TAction;
+    acShowLog: TAction;
     acViewText: TAction;
     acTree: TAction;
     ActionList1: TActionList;
     ApplicationProperties1: TApplicationProperties;
     bttree: TToolButton;
     MenuItem1: TMenuItem;
+    MenuItem2: TMenuItem;
+    MenuItem3: TMenuItem;
+    MenuItem4: TMenuItem;
+    MenuItem5: TMenuItem;
+    miTabs: TMenuItem;
+    miView: TMenuItem;
     miDBListStart: TMenuItem;
     miSQL: TMenuItem;
     miMiniLog: TMenuItem;
@@ -67,7 +76,6 @@ type
     tbScr: TToolButton;
     MainMenu1: TMainMenu;
     miBrowser: TMenuItem;
-    miForms: TMenuItem;
     miUser: TMenuItem;
     miSaveSettings: TMenuItem;
     miEditButtons: TMenuItem;
@@ -88,11 +96,17 @@ type
     procedure acExitExecute(Sender: TObject);
     procedure acFontSizesExecute(Sender: TObject);
     procedure acFormsExecute(Sender: TObject);
+    procedure acHideButtonsExecute(Sender: TObject);
+    procedure acHideButtonsUpdate(Sender: TObject);
+    procedure acHideTabsExecute(Sender: TObject);
+    procedure acHideTabsUpdate(Sender: TObject);
     procedure acMiniLogExecute(Sender: TObject);
     procedure acNewBrowserExecute(Sender: TObject);
     procedure acNewProjectExecute(Sender: TObject);
     procedure acOpenProjectExecute(Sender: TObject);
     procedure acSaveProjExecute(Sender: TObject);
+    procedure acShowLogExecute(Sender: TObject);
+    procedure acShowLogUpdate(Sender: TObject);
     procedure acTreeExecute(Sender: TObject);
     procedure acViewTextExecute(Sender: TObject);
     procedure ApplicationProperties1Hint(Sender: TObject);
@@ -125,6 +139,7 @@ type
     procedure DoMRUClick(Sender:TObject);
     procedure DoPrjClick(Sender:TObject);
     procedure DoDBClick(Sender:TObject);
+    procedure DoMiTabsClick(Sender:TObject);
     procedure StartLoadPrj;
     function OpenProj:boolean;
     function NewProj:boolean;
@@ -150,6 +165,7 @@ type
     procedure UpdateMRUMenu;
     procedure UpdateProjMRU;
     procedure UpdateDBMenu;
+    procedure UpdateTabsMenu;
 
     procedure DoNewFileOpened(AFileName:string);
 
@@ -194,6 +210,16 @@ end;
 procedure TfrmMain.acSaveProjExecute(Sender: TObject);
 begin
   Options.ActivePrj.Save;
+end;
+
+procedure TfrmMain.acShowLogExecute(Sender: TObject);
+begin
+  PageControl1.ActivePageIndex:=0;
+end;
+
+procedure TfrmMain.acShowLogUpdate(Sender: TObject);
+begin
+  UpdateTabsMenu;
 end;
 
 procedure TfrmMain.acTreeExecute(Sender: TObject);
@@ -254,6 +280,26 @@ end;
 procedure TfrmMain.acFormsExecute(Sender: TObject);
 begin
   ShowForms;
+end;
+
+procedure TfrmMain.acHideButtonsExecute(Sender: TObject);
+begin
+  tb.Visible:=not tb.Visible;
+end;
+
+procedure TfrmMain.acHideButtonsUpdate(Sender: TObject);
+begin
+  acHideButtons.Checked:=not tb.Visible;
+end;
+
+procedure TfrmMain.acHideTabsExecute(Sender: TObject);
+begin
+  PageControl1.ShowTabs:=not PageControl1.ShowTabs;
+end;
+
+procedure TfrmMain.acHideTabsUpdate(Sender: TObject);
+begin
+  acHideTabs.Checked:=not PageControl1.ShowTabs;
 end;
 
 procedure TfrmMain.acMiniLogExecute(Sender: TObject);
@@ -460,6 +506,11 @@ procedure TfrmMain.DoDBClick(Sender: TObject);
 begin
   if Sender is TMenuItem then
     CreateSQLFrame(TMenuItem(Sender).Caption);
+end;
+
+procedure TfrmMain.DoMiTabsClick(Sender: TObject);
+begin
+  PageControl1.ActivePageIndex:=(Sender as TMenuItem).Tag;
 end;
 
 procedure TfrmMain.StartLoadPrj;
@@ -744,6 +795,22 @@ begin
       mi.OnClick:=@DoDBClick;
       miSQL.Add(mi);
     end;
+end;
+
+procedure TfrmMain.UpdateTabsMenu;
+var
+  I: Integer;
+  mi:TMenuItem;
+begin
+  while miTabs.Count>1 do
+    miTabs[miTabs.Count-1].Free;
+  for I:=1 to PageControl1.PageCount-1 do begin
+    mi:=TMenuItem.Create(Self);
+    mi.Caption:=PageControl1.Pages[I].Caption;
+    mi.Tag:=I;
+    mi.OnClick:=@DoMiTabsClick;
+    miTabs.Add(mi);
+  end;
 end;
 
 procedure TfrmMain.DoNewFileOpened(AFileName: string);

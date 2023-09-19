@@ -16,13 +16,13 @@ type
   TAfterExecAction = (aeUpdateSQL, aeExecSQL, aeUpdateChildren, aeUpdateParent, aeUpdateItem);
   TAfterExecActions = set of TAfterExecAction;
   обновить поле SQL запроса, выполнить запрос, обновить список детей, обновить список детей у родителя,
-  обновить тек элемент
+  обновить тек элемент (FData)
 
   в TDBBaseItem добавить
 
-  DoGetMenuItem(var AText:string; var AIndex:integer; var AHandler:TDBItemHandler); - возвращает текст для нового пункта меню, в Aindex лежит
-  знеачение, которое пихается в этото новый пункт меню (и для внутреннего итератора), Handler - то,
-  что вызывается при нажатии не этото пункт меню
+  DoGetMenuItem(var AText:string; var AIndex:integer; var AHandler:TDBItemHandler); - возвращает текст для
+  нового пункта меню, в Aindex лежит значение, которое пихается в этото новый пункт меню
+  (или для внутреннего итератора), Handler - то, что вызывается при нажатии на этот пункт меню
 
   и для каждого пункта написать процедуру вида
 
@@ -31,88 +31,30 @@ type
   объявить свой тип менюитема с полем для хранения этого хандлера
   TExMenuItem = class(TMenuItem)
     FHandler:TDBItemHandler;
-    procedure DoClick(Sender:TObject);
+    procedure Click(Sender:TObject);override;
     begin
       FHandler(Actions,SQL);
       if aeUpdateSQL in Actions then .....
+      if aeExecSQL in Action then ...
+      if {еще 3 путнка}
 
     end;
 
   end;
 
-  в онклик ставить свой обработчик, который вызывает итемный, а затем выполняет действия, указанные
-  в Actions
 
-  и при создании итема вызывать у него DoGetMenuItem, пока AHandler не станет nil или AText <> ''
-
-  при открытии меню валим те
-  }
-
-
-{надо реализовать хранение информации о таблицах, вьюхах и индексах, а может о чем то еще,
-в виде набора спец классов вида
-  TDomainInfo = class
-    Name:string;
-    DataType:TDataType;
-    DataLen:Integer;
-    Precision:Integer;
-    Scale:Integer;
-    NullFlag:boolean;
-    Check:string;
-    DefValue:string;
-    Computed:string;
-  end;
-
-  TFieldInfo = class
-    Name:string;
-    Position:Integer;
-    Info:TDomainInfo;
-    UpdateFlag:boolean; 0 if computed, 1 - normal
-    NullFlag:boolean;
-    DefValue:string;
-  end;
-
-  TIndexInfo = class
-    IndexName:string;
-    TableName:string;
-    Fields:TStrings;
-    Unique:Boolean;
-    Askending:boolean;
-  end;
-
-  TFKeyInfo = class
-    MainTable:string;
-    RefTable:string;
-    RefFields:TStrings(MainItem:RefItem)
-    UpdateAction:string;
-    DeleteAction:string;
-  end
-
-  TTableInfo = class
-    Name:string;
-    Fields:ListOfTFieldInfo;
-    Checks:TStrings;
-    PrimaryKey:TIndex;
-    FogernKeys:ListOfFKeys;
-    Constains:TStrings;
-  end;
-
-  TTriggerInfo = class
-
-  end;
-
-  TProcInfo = class
-
-
-
-  end;
-
-
+  и при создании меню в OnPopup сначала валим старые TExMenuItem, а потом вызывать у
+  TMyTreeNode.FDBItem  DoGetMenuItem, пока AHandler не станет nil или AText <> '', и
+  создавать новые
+  у меню убрать все пункты, кроме Update, все остальное создавать руками
 
   }
+
+
 
 
   TDBBaseItem = class;
+
   TConnectionType = class;
 
   TColSizes = specialize TFPGMap<string, Integer>;
@@ -122,7 +64,9 @@ type
 
   { TConnectionInfo }
 
-  TConnectionInfo = class  //тупо ДатаКласс
+
+
+  TConnectionInfo = class  //
     public
       FRefCount:Integer;
       FConnection:TSQLConnection;
@@ -160,8 +104,6 @@ type
   end;
 
   TCTypesList = specialize TFPGMap<string, TConnectionType>;
-
-
 
   TMyTreeNode = class (TTreeNode)
     public
