@@ -5,10 +5,32 @@ unit u_fbinfo;
 interface
 
 uses
-  Classes, SysUtils, u_frSQL, IBConnection, SQLDB, DB;
+  Classes, SysUtils, u_frSQL, IBConnection, SQLDB, DB, u_MetaInfo;
 
 
 type
+
+  TGetNamesProc   = procedure (AList:TStrings; UseFlag:Boolean) of object;
+  TFillObjectProc = procedure (AMetaObject:TBaseMetaInfo) of object;
+
+  { TFBConnectionInfo }
+
+  TFBConnectionInfo = class(TConnectionInfo)
+    protected
+      FGet: array [TMetaType] of TGetNamesProc;
+      FFill: array [TMetaType] of TFillObjectProc;
+
+      procedure GetNamesList(AMetaType:TMetaType; AList:TStrings; UseFlag:Boolean);override;
+      procedure FillObject(AMetaObject:TBaseMetaInfo);override;
+
+      procedure GetDomainList(AList:TStrings; UseFlag:Boolean);
+      procedure FillDomain(ADomain:TBaseMetaInfo);
+
+    public
+      constructor Create;override;
+
+  end;
+
   TFBDB = class;
 
   { TFBItem }
@@ -30,6 +52,7 @@ type
       procedure CloseDS(AQuery:TSQLQuery);
     protected
       FConnection:TIBConnection;
+      FBConnInfo:TFBConnectionInfo;
       procedure CreateChildren;override;
     public
       constructor Create(AConnection:TIBConnection);
@@ -142,6 +165,36 @@ type
 implementation
 
 uses u_data;
+
+{ TFBConnectionInfo }
+
+procedure TFBConnectionInfo.GetNamesList(AMetaType: TMetaType; AList: TStrings;
+  UseFlag: Boolean);
+begin
+
+end;
+
+procedure TFBConnectionInfo.FillObject(AMetaObject: TBaseMetaInfo);
+begin
+  inherited FillObject(AMetaObject);
+end;
+
+procedure TFBConnectionInfo.GetDomainList(AList: TStrings; UseFlag: Boolean);
+begin
+  SQL:=
+end;
+
+procedure TFBConnectionInfo.FillDomain(ADomain: TBaseMetaInfo);
+begin
+
+end;
+
+constructor TFBConnectionInfo.Create;
+begin
+  inherited Create;
+  FFill[mtDomain]:=@FillDomain;
+  FGet[mtDomain]:=@GetDomainList;
+end;
 
 { TFBGenerator }
 
@@ -263,7 +316,7 @@ function TFBConnType.InternalCreateInfo(AConnData: string): TConnectionInfo;
 var Tran:TSQLTransaction;
     dbc:TDBColItem;
 begin
-  Result:=TConnectionInfo.Create;
+  Result:=TFBConnectionInfo.Create;
   Result.FConnection:=TIBConnection.Create(nil);
   Result.FConnType:=Self;
   Result.FName:=AConnData;
@@ -290,7 +343,8 @@ end;
 function TFBConnType.GetDBItem(AInfo: TConnectionInfo): TDBBaseItem;
 begin
   Result:=TFBDB.Create(AInfo.FConnection as TIBConnection);
-  Result.UpdateChilds;
+  TFBDB(Result).FBConnInfo:=AInfo as TFBConnectionInfo;
+  //Result.UpdateChilds;
 end;
 
 { TFBIndexList }
@@ -391,7 +445,9 @@ end;
 { TFBDomainList }
 
 procedure TFBDomainList.CreateChildren;
+var SL:TStringList;
 begin
+  TFBDB(FRootItem).FBConnInfo.MetaData.GetNamesList(mtDomain);
 end;
 
 function TFBDomainList.GetSelect: string;
@@ -477,39 +533,21 @@ var AItem:TFBItem;
 begin
   //таблицы, домены, вьюхи, процедуры, триггеры, генераторы, индексы
   Log('FBDB -CreateChildren');
-  if FItems = nil then
-    FItems:=TDBItemsList.Create(True)
-  else begin
-    Exit;
-  end;
-  AItem:=TFBTableList.Create(Self);
-  //AItem.UpdateChilds;
-  FItems.Add(AItem);
-  AItem:=TFBViewList.Create(Self);
-  //AItem.UpdateChilds;
-  FItems.Add(AItem);
-  AItem:=TFBDomainList.Create(Self);
-  //AItem.UpdateChilds;
-  FItems.Add(AItem);
-  AItem:=TFBIndexList.Create(Self);
-  //AItem.UpdateChilds;
-  FItems.Add(AItem);
-  AItem:=TFBGenList.Create(Self);
-  //AItem.UpdateChilds;
-  FItems.Add(AItem);
-  AItem:=TFBProcList.Create(Self);
-  //AItem.UpdateChilds;
-  FItems.Add(AItem);
-  AItem:=TFBTriggerList.Create(Self);
-  //AItem.UpdateChilds;
-  FItems.Add(AItem);
+  if FItems <> nil then Exit;
+  FItems:=TDBItemsList.Create(True);
+  FItems.Add(TFBTableList.Create(Self));
+  FItems.Add(TFBViewList.Create(Self));
+  FItems.Add(TFBDomainList.Create(Self));
+  FItems.Add(TFBIndexList.Create(Self));
+  FItems.Add(TFBGenList.Create(Self));
+  FItems.Add(TFBProcList.Create(Self));
+  FItems.Add(TFBTriggerList.Create(Self));
 end;
 
 constructor TFBDB.Create(AConnection: TIBConnection);
 begin
   FConnection := AConnection;
   FDisplayName:=ExtractFileName(FConnection.DatabaseName);
-  //UpdateChilds;
 end;
 
 { TFBItem }

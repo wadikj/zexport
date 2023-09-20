@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, DB, SQLDB, IBConnection, SQLite3Conn, Forms, Controls,
-  ComCtrls, ExtCtrls, DBGrids, Menus, SynEdit, SynHighlighterSQL, fgl;
+  ComCtrls, ExtCtrls, DBGrids, Menus, SynEdit, SynHighlighterSQL, fgl, u_MetaInfo;
 
 type
   {
@@ -64,9 +64,12 @@ type
 
   { TConnectionInfo }
 
-
-
-  TConnectionInfo = class  //
+  TConnectionInfo = class  //support connection with current DB
+    private
+      FMetaData: TMetaData;
+    protected
+      procedure GetNamesList(AMetaType:TMetaType; AList:TStrings; UseFlag:Boolean);virtual;
+      procedure FillObject(AMetaObject:TBaseMetaInfo);virtual;
     public
       FRefCount:Integer;
       FConnection:TSQLConnection;
@@ -75,10 +78,11 @@ type
       FConnType:TConnectionType;
       FExtraData:TStrings;
       FCols:TColSizes;
-      constructor Create;
+      constructor Create;virtual;
       procedure InitCols;
       procedure SaveCols;
       destructor Destroy;override;
+      property MetaData:TMetaData read FMetaData;
   end;
 
   TConnectionList = specialize TFPGMap<string, TConnectionInfo>;
@@ -360,6 +364,17 @@ end;
 
 { TConnectionInfo }
 
+procedure TConnectionInfo.GetNamesList(AMetaType: TMetaType; AList: TStrings;
+  UseFlag: Boolean);
+begin
+  raise EInvalidObject.Create('GetNamesList not implemented');
+end;
+
+procedure TConnectionInfo.FillObject(AMetaObject: TBaseMetaInfo);
+begin
+  raise EInvalidObject.Create('FillObject not implemented');
+end;
+
 constructor TConnectionInfo.Create;
 begin
   FRefCount:=0;
@@ -369,6 +384,9 @@ begin
   FConnType:=nil;
   FExtraData:=nil;
   FCols:=TColSizes.Create;
+  FMetaData:=TMetaData.Create;
+  FMetaData.OnFillObject:=@FillObject;
+  FMetaData.OnGetNames:=@GetNamesList;
 end;
 
 procedure TConnectionInfo.InitCols;

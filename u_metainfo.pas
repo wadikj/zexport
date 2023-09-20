@@ -5,7 +5,7 @@ unit u_metainfo;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils, fgl;
 
 type
 
@@ -210,6 +210,21 @@ type
 
   TAutoIncMethod = (aimNone, aimDataType, aimTrigger);
 
+  TTriggerEvent = (teUnk, teBeforeInsert, teBeforeUpdate, teBeforeDelete,
+    teAfterInsert, teAfterUpdate, teAfterDelete, teOnConnect, teOnDisconnect,
+    teOnTransactionStart, teOnTransactionCommin, teOnTransactionRollback);
+
+  TTriggerEvents = set of TTriggerEvent;
+
+  //если попытаться получить инфу об метаобъекте, которого нет в БД, вызывается
+  //исключение - EInvalidObject;
+
+  EInvalidObject = class(Exception)
+    public
+      ObjectName:string;
+      ObjectType:TMetaType
+  end;
+
   { TBaseMetaInfo }
 
   TBaseMetaInfo = class
@@ -218,6 +233,7 @@ type
       FMetaType: TMetaType;
       FName: string;
       FSystemFlag: boolean;
+      FSystemName: boolean;
     public
       constructor Create;virtual;
       function GetEmpty:TBaseMetaInfo;
@@ -227,6 +243,8 @@ type
       property MetaType:TMetaType read FMetaType write FMetaType; // тип меты, в общем то можно было обойтись и типом класса - они должэны дублировать друг друга
       property SystemName:boolean read FSystemName write FSystemName;//имя элемента задано системой
   end;
+
+  TBaseMetaClass = class of TBaseMetaInfo;
 
   TMetaList = specialize TFPGObjectList<TBaseMetaInfo>;
 
@@ -262,7 +280,7 @@ type
     private
       FAutoInc: TAutoIncMethod;
       FDefValue: string;
-      FDomainInfo: TDomainInfo;//other data for field meta //fb - use system domain
+      FDomainInfo: string;//other data for field meta //fb - use system domain
       FNullFlag: boolean;
       FPosition: Integer;
       FUpdateFlag: boolean;
@@ -301,27 +319,34 @@ type
       FDeleteAction: string;
       FIndexName: string;
       FMainTable: string;
-      FName: string;
       FRefFields: TStringList;
       FRefTable: string;
       FUpdateAction: string;
-      UpdateAction: string;
     public
       constructor Create;override;
       destructor Destroy; override;
       property MainTable:string read FMainTable write FMainTable;//наша таблица
       property RefTable:string read FRefTable write FRefTable;//таблица, на которую ссылаемся
       property RefFields:TStringList read FRefFields;//(MainItem:RefItem)//соотношение наших полей ина которые ссылаемся
-      property UpdateAction:string read FUpdateAction write UpdateAction;
+      property UpdateAction:string read FUpdateAction write FUpdateAction;
       property DeleteAction:string read FDeleteAction write FDeleteAction;
       property IndexName:string read FIndexName write FIndexName;
   end;
 
 
+  TFieldsList = specialize TFPGObjectList<TFieldInfo>;
+
+  { TTableInfo }
 
   TTableInfo = class(TBaseMetaInfo)
     private
-
+      FForeignKeys: TStringList;
+      FIndices: TStringList;
+      FPrimaryKey: string;
+      FTriggers: TStringList;
+      FFields:TFieldsList;
+      function GetFieldCount: Integer;
+      function GetFields(I: Integer): TFieldInfo;
     public
       constructor Create;override;
       destructor Destroy; override;
@@ -331,16 +356,294 @@ type
       property ForeignKeys:TStringList read FForeignKeys;//foreign keys
       property Triggers:TStringList read FTriggers;//list of trigger names on this table
       property Indices:TStringList read FIndices;//list of index names on this table
-
       function AddField:TFieldInfo;
-      procedure DeleteField(TFieldInfo);
+      procedure DeleteField(Info:TFieldInfo);
     end;
 
 
+  TViewInfo = class (TBaseMetaInfo)
+    private
+
+    public
+
+  end;
+
+
+  { TTriggerInfo }
+
+  TTriggerInfo = class (TBaseMetaInfo)
+    private
+      FCheckSupport: boolean;
+      FEventSupport: TTriggerEvents;
+      FPosition: Integer;
+      FTableName: string;
+      FText: string;
+    public
+      constructor Create;override;
+      destructor Destroy; override;
+      property TableName:string read FTableName write FTableName;
+      property Position:Integer read FPosition write FPosition;
+      property EventSupport:TTriggerEvents read FEventSupport write FEventSupport; //events was trigger run
+      property CheckSupport:boolean read FCheckSupport write FCheckSupport;//trigger used for constraints support
+      property Text:string read FText write FText;//trigger text
+  end;
+
+
+  TGetNamesListEvent = procedure (AMetaType:TMetaType; AList:TStrings; UseFlag:Boolean) of object;
+  //if UseFlags, then format of string is Name:SystemFlag:SystemName (SystemFlag and SystemName in (0,1));
+  //else List contain names only
+  TFillObjectEvent  = procedure (AMetaObject:TBaseMetaInfo) of object;
+
+  TMetaMap = specialize TFPGMap<string, TBaseMetaInfo>;
+
+  TMetaArray = array [TMetaType] of TMetaMap;
+
+  { TMetaData }
+
+  TMetaData = class
+    private
+      FArray:TMetaArray;
+      FOnFillObject: TFillObjectEvent;
+      FOnGetNames: TGetNamesListEvent;
+
+      function GetDomains(AName: string): TDomainInfo;
+      function GetForeignKeys(AName: string): TFKeyInfo;
+      function GetIndices(AName: string): TIndexInfo;
+      function GetObjects(AName: string): TBaseMetaInfo;
+      function GetTables(AName: string): TTableInfo;
+      function GetTriggers(AName: string): TTriggerInfo;
+      procedure DoFillObject(AMetaInfo:TBaseMetaInfo);
+      procedure DoGetNames(AMetaType:TMetaType);//if Need Force, clear Array
+      function GetTypedObject(AMetaType:TMetaType; AName:string):TBaseMetaInfo;
+    public
+      constructor Create;
+      destructor Destroy; override;
+      property Objects[AName:string]:TBaseMetaInfo read GetObjects;
+      property Tables[AName:string]:TTableInfo read GetTables;
+      property Domains[AName:string]:TDomainInfo read GetDomains;
+      property Indices[AName:string]:TIndexInfo read GetIndices;
+      property Triggers[AName:string]:TTriggerInfo read GetTriggers;
+      property ForeignKeys[AName:string]:TFKeyInfo read GetForeignKeys;
+      function GetNamesList(AMetaType:TMetaType):TStringList;
+      function GetEmptyObject(AMetaType:TMetaType):TBaseMetaInfo;
+      property OnGetNames:TGetNamesListEvent read FOnGetNames write FOnGetNames;
+      property OnFillObject:TFillObjectEvent read FOnFillObject write FOnFillObject;
+  end;
 
 
 
 implementation
+
+
+const MetaTypes : array [TMetaType] of TBaseMetaClass = (TBaseMetaInfo, TDomainInfo,
+  TFieldInfo, TTableInfo, TViewInfo, TIndexInfo, TTriggerInfo, TFKeyInfo);
+
+
+{ TMetaData }
+
+function TMetaData.GetDomains(AName: string): TDomainInfo;
+begin
+  {if FArray[mtDomain].Count=0 then
+    DoGetNames(mtDomain);
+  Result:=FArray[mtDomain].KeyData[AName];
+  if not Result.FLoaded then
+    DoFillObjects(Result);}
+  Result:=GetTypedObject(mtDomain,AName) as TDomainInfo;
+end;
+
+function TMetaData.GetForeignKeys(AName: string): TFKeyInfo;
+begin
+    Result:=GetTypedObject(mtDomain,AName) as TFKeyInfo;
+end;
+
+function TMetaData.GetIndices(AName: string): TIndexInfo;
+begin
+    Result:=GetTypedObject(mtDomain,AName) as TIndexInfo;
+end;
+
+function TMetaData.GetObjects(AName: string): TBaseMetaInfo;
+var
+  I: TMetaType;
+  J:Integer;
+begin
+  Result:=nil;
+  for I:=Low(TMetaType) to High(TMetaType) do begin
+    J:=FArray[I].IndexOf(AName);
+    if J<>-1 then begin
+      Result:=FArray[I].Data[J];
+      if not Result.FLoaded then
+        DoFillObject(Result);
+      Exit;
+    end;
+  end;
+end;
+
+function TMetaData.GetTables(AName: string): TTableInfo;
+begin
+  Result:=GetTypedObject(mtDomain,AName) as TTableInfo;
+end;
+
+function TMetaData.GetTriggers(AName: string): TTriggerInfo;
+begin
+  Result:=GetTypedObject(mtDomain,AName) as TTriggerInfo;
+end;
+
+procedure TMetaData.DoFillObject(AMetaInfo: TBaseMetaInfo);
+begin
+  if AMetaInfo.FLoaded then Exit;
+  if Assigned(FOnFillObject) then
+    FOnFillObject(AMetaInfo);
+end;
+
+procedure TMetaData.DoGetNames(AMetaType: TMetaType);
+var SL:TStrings;
+  procedure LoadNames;
+  var S:string;
+      SA:TStringArray;
+      mi:TBaseMetaInfo;
+      CClass:TBaseMetaClass;
+  begin
+    //Name:SystemFlag:SystemName
+    CClass:=MetaTypes[AMetaType];
+    for S in SL do begin
+      SA:=S.Split([':']);
+      mi:=CClass.Create;
+      mi.FName:=SA[0];
+      if SA[1] = '1' then
+        mi.FSystemFlag:=True;
+      if SA[2] = '1' then
+        mi.FSystemName:=True;
+      FArray[AMetaType].KeyData[mi.FName]:=mi;
+    end;
+  end;
+
+begin
+  //get names for AMetaType
+  if FArray[AMetaType].Count<>0 then Exit;
+  if Assigned(FOnGetNames) then begin
+    try
+      SL:=TStringList.Create;
+      FOnGetNames(AMetaType,SL, True);
+      LoadNames;
+    finally
+      SL.Free;
+    end;
+  end;
+end;
+
+function TMetaData.GetTypedObject(AMetaType: TMetaType; AName: string
+  ): TBaseMetaInfo;
+begin
+  Result:=nil;
+  if FArray[AMetaType].Count=0 then
+    DoGetNames(AMetaType);
+  Result:=FArray[AMetaType].KeyData[AName];
+  if not Result.FLoaded then
+    DoFillObject(Result);
+end;
+
+constructor TMetaData.Create;
+var
+  I: TMetaType;
+begin
+  for I:=Low(TMetaType) to High(TMetaType) do
+    FArray[I]:=TMetaMap.Create;
+end;
+
+destructor TMetaData.Destroy;
+var
+  I: TMetaType;
+  J: Integer;
+begin
+  for I:=Low(TMetaType) to High(TMetaType) do
+    for J:=0 to FArray[I].Count-1 do begin
+      FArray[I].Data[J].Free;
+    end;
+    FArray[I].Free;
+  inherited Destroy;
+end;
+
+function TMetaData.GetNamesList(AMetaType: TMetaType): TStringList;
+var
+  I: Integer;
+begin
+  Result:=nil;
+  DoGetNames(AMetaType);
+  if FArray[AMetaType].Count=0 then
+    Exit;
+  Result:=TStringList.Create;
+  for I:=0 to FArray[AMetaType].Count-1 do begin
+    Result.Add(FArray[AMetaType].Keys[I]);
+  end;
+end;
+
+function TMetaData.GetEmptyObject(AMetaType: TMetaType): TBaseMetaInfo;
+begin
+  Result:=nil;
+  //Result:=MetaTypes[AMetaType].Create;
+  //FArray[AMetaType].;
+  //need name for insert in maps
+end;
+
+{ TTriggerInfo }
+
+constructor TTriggerInfo.Create;
+begin
+  inherited Create;
+  FMetaType:=mtTrigger;
+  FCheckSupport:=False;
+  FEventSupport:=[];
+  FPosition:=0;
+  FTableName:='';
+  FText:='';
+end;
+
+destructor TTriggerInfo.Destroy;
+begin
+  inherited Destroy;
+end;
+
+{ TTableInfo }
+
+function TTableInfo.GetFieldCount: Integer;
+begin
+  Result:=FFields.Count;
+end;
+
+function TTableInfo.GetFields(I: Integer): TFieldInfo;
+begin
+  Result:=FFields[I];
+end;
+
+constructor TTableInfo.Create;
+begin
+  inherited Create;
+  FForeignKeys:= TStringList.Create;
+  FIndices:=TStringList.Create;
+  FPrimaryKey:='';
+  FTriggers:= TStringList.Create;
+  FFields:=TFieldsList.Create(True);
+end;
+
+destructor TTableInfo.Destroy;
+begin
+  FForeignKeys.Free;
+  FIndices.Free;
+  FTriggers.Free;
+  FFields.Free;;
+  inherited Destroy;
+end;
+
+function TTableInfo.AddField: TFieldInfo;
+begin
+  Result:=TFieldInfo.Create;
+  FFields.Add(Result);
+end;
+
+procedure TTableInfo.DeleteField(Info: TFieldInfo);
+begin
+  FFields.Remove(Info);
+end;
 
 { TDomainInfo }
 
@@ -367,11 +670,12 @@ begin
   FSystemFlag:=True;
   FLoaded:=False;
   FMetaType:=mtUnk;
+  FSystemName:=False;
 end;
 
 function TBaseMetaInfo.GetEmpty: TBaseMetaInfo;
 begin
-  Result:=ClassType.Create;
+  Result:=TBaseMetaClass(ClassType).Create;
   Result.FName:=FName;
   Result.FSystemFlag:=FSystemFlag;
   Result.FLoaded:=False;
@@ -422,7 +726,6 @@ constructor TFieldInfo.Create;
 begin
   inherited Create;
   FMetaType:=mtField;
-  FDomainInfo:=TDomainInfo.Create;
   FPosition:=-1;
   FUpdateFlag:=False;
   FNullFlag:=False;
@@ -432,7 +735,6 @@ end;
 
 destructor TFieldInfo.Destroy;
 begin
-  FDomainInfo.Free;
   inherited Destroy;
 end;
 
