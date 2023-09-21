@@ -26,8 +26,21 @@ type
       procedure GetDomainList(AList:TStrings; UseFlag:Boolean);
       procedure FillDomain(ADomain:TBaseMetaInfo);
 
+      procedure GetViewList(AList:TStrings; UseFlag:Boolean);
+      procedure FillView(AView:TBaseMetaInfo);
+
+      procedure FillField(AField:TBaseMetaInfo);
+
+      procedure GetIndexList(AList:TStrings; UseFlag:Boolean);
+      procedure FillIndex(AIndex:TBaseMetaInfo);
+
+
+
     public
       constructor Create;override;
+      function GetDS(ASQL:string):TSQLQuery;
+      procedure CloseDS(AQuery:TSQLQuery);
+
 
   end;
 
@@ -97,9 +110,17 @@ type
   TFBDomainList = class(TFBItem)
     protected
       procedure CreateChildren;override;
+      function HasChildren:boolean;override;
     public
       function GetSelect:string;override;
       procedure AfterConstruction; override;
+  end;
+
+  TFBDomain = class(TFBItem)
+    protected
+      procedure CreateData;override;
+      function HasChildren:boolean;override;
+
   end;
 
   { TFBViewList }
@@ -110,6 +131,13 @@ type
     public
       procedure AfterConstruction; override;
   end;
+
+  TFBView = class(TFBItem)
+    protected
+      procedure CreateData;override;
+      function HasChildren:boolean;override;
+  end;
+
 
   { TFBProcList }
 
@@ -147,8 +175,6 @@ type
     private
       procedure CreateData; override;
       function HasChildren: boolean; override;
-
-
   end;
 
 
@@ -159,34 +185,321 @@ type
       procedure CreateChildren;override;
     public
       procedure AfterConstruction; override;
+  end;
 
+  TFBIndex = class(TFBItem)
+    private
+      procedure CreateData; override;
+      function HasChildren: boolean; override;
   end;
 
 implementation
 
 uses u_data;
 
+
+{  TDataType = (dtUnk, dtSmallInt, dtInteger, dtBigInt, dtFloat, dtDate, dtTime,
+    dtTimeStamp, dtChar, dtVarChar, dtDoublePrec, dtBlob, dtDecimal, dtNumeric);
+}
+const TypeNames : array[TDataType] of string = ('', 'SMALLINT','INTEGER','BIGINT',
+  'FLOAT','DATE','TIME','TIMESTAMP','CHAR','VARCHAR','DOUBLE PRECISION','BLOB',
+  'DECIMAL','NUMERIC');
+
+{ TFBIndex }
+
+procedure TFBIndex.CreateData;
+var S:string;
+    II:TIndexInfo;
+begin
+  if FData<>nil then Exit;
+  FData:=TStringList.Create;
+  II:=TFBDB(FRootItem).FBConnInfo.MetaData.Indices[FDisplayName];
+  FData.Add('TABLE: ' + II.TableName);
+  FData.Add('FIELDS: '+ string('').Join(', ',II.Fields.ToStringArray));
+  if II.ForeignKey<>'' then
+    FData.Add('FOREIGN KEY: '+ II.ForeignKey);
+  if II.Unique then
+    FData.Add('UNIQUE');
+  if II.Askending then
+    FData.Add('ASKENDING')
+  else
+    FData.Add('DESKENDING');
+end;
+
+function TFBIndex.HasChildren: boolean;
+begin
+  Result:=False;
+end;
+
+{ TFBView }
+
+procedure TFBView.CreateData;
+var VI:TViewInfo;
+    FI:TFieldInfo;
+    S:string;
+    I:Integer;
+begin
+  if FData<>nil then Exit;
+  FData:=TStringList.Create;
+  VI:=TFBDB(FRootItem).FBConnInfo.MetaData.Views[FDisplayName];
+  FData.Add('TABLES: ' + string(',').Join(',',VI.Tables.ToStringArray));
+  for I:=0 to VI.FieldCount-1 do begin
+    FI:=VI.Fields[I];
+    S:=FI.Name+': '+VI.Tables[FI.ViewContext-1]{IntTOStr(FI.ViewContext)}+'.'+FI.Name;
+    FData.Add(S);
+  end;
+end;
+
+function TFBView.HasChildren: boolean;
+begin
+  Result:=False;
+end;
+
+{ TFBDomain }
+
+
+procedure TFBDomain.CreateData;
+var DI:TDomainInfo;
+    S:string;
+begin
+  if FData<>nil then Exit;
+  FData:=TStringList.Create;
+  DI:=(FRootItem as TFBDB).FBConnInfo.MetaData.Domains[FDisplayName];
+  S:='NAME:'+FDisplayName;
+  FData.Add(S);
+  S:=TypeNames[DI.DataType];
+  if DI.DataType in [dtDecimal,dtNumeric] then
+    S:=S+'('+DI.Precision.ToString+','+DI.Scale.ToString+')';
+  if DI.DataType in [dtChar,dtVarChar] then
+    S:=S+'('+DI.DataLen.ToString+')';
+  if DI.DataType = dtBlob then
+    S:=S+' SUB TYPE 1';
+  FData.Add('TYPE:'+S);
+  if DI.DefValue<>'' then
+    FData.Add('DEFAULT:'+DI.DefValue);
+  if DI.Check<>'' then
+    FData.Add('CHECK:'+DI.Check);
+  if DI.Computed<>'' then
+    FData.Add('COMPUTED:'+DI.Computed);
+  if DI.NullFlag then FData.Add('NOT NULL');
+  if DI.SystemFlag then
+    FData.Add('SYSTEM FLAG:1');
+  if DI.SystemName then
+    FData.Add('SYSTEM NAMED:1');
+end;
+
+function TFBDomain.HasChildren: boolean;
+begin
+  Result:=False;
+end;
+
 { TFBConnectionInfo }
 
 procedure TFBConnectionInfo.GetNamesList(AMetaType: TMetaType; AList: TStrings;
   UseFlag: Boolean);
+var Proc:TGetNamesProc;
 begin
-
+  Proc:=FGet[AMetaType];
+  if Assigned(Proc) then
+    Proc(AList,UseFlag);
 end;
 
 procedure TFBConnectionInfo.FillObject(AMetaObject: TBaseMetaInfo);
+var Proc:TFillObjectProc;
 begin
-  inherited FillObject(AMetaObject);
+  Proc:=FFill[AMetaObject.MetaType];
+  if Assigned(Proc) then
+    Proc(AMetaObject)
+  else
+    Log('Procedure Fill not defined for object named '+AMetaObject.Name);
 end;
 
 procedure TFBConnectionInfo.GetDomainList(AList: TStrings; UseFlag: Boolean);
+var SQL:string;
+    DS:TSQLQuery;
+    S,S1:string;
 begin
-  SQL:=
+  //name:sf:sn
+  SQL:='select RDB$FIELD_NAME, rdb$system_flag from rdb$fields where rdb$system_flag <> 1';
+  DS:=GetDS(SQL);
+  while not DS.EOF do begin
+    S:=DS.Fields[0].AsString.Trim();
+    if UseFlag then begin
+      if (not DS.Fields[1].IsNull) and (DS.Fields[1].AsInteger=1) then
+        S1:='1'
+      else S1:='0';
+      S:=S+':'+S1;
+      if Pos('RDB$',S) = 1 then S1:='1'
+      else S1:='0';
+      S:=S+':'+S1;
+    end;
+    AList.Add(S);
+    DS.Next;
+  end;
+  CloseDS(DS);
 end;
 
 procedure TFBConnectionInfo.FillDomain(ADomain: TBaseMetaInfo);
+var DI:TDomainInfo absolute ADomain;
+    SQL:string;
+    DS:TSQLQuery;
+    F:TField;
+    V:Integer;
 begin
+  ADomain.Loaded:=True;
+  SQL:='select RDB$FIELD_NAME, rdb$validation_source, rdb$computed_source, rdb$default_source, rdb$field_length, '+
+     'rdb$field_scale, rdb$field_type, rdb$field_sub_type, rdb$null_flag, '+
+     'rdb$character_length, rdb$field_precision '+
+     ' from rdb$fields where RDB$FIELD_NAME='''+ADomain.Name+'''';
+  DS:=GetDS(SQL);
+  if DS.RecordCount<>1 then begin
+    EInvalidObject.CreateFmt('Domain %s have error info in meta tables', [ADomain.Name]);
+  end;
+  DI.Check:=DS.FieldByName('rdb$validation_source').AsString;
+  DI.Computed:=DS.FieldByName('rdb$computed_source').AsString;
+  DI.DefValue:=DS.FieldByName('rdb$default_source').AsString;
+  DI.DataLen:=DS.FieldByName('rdb$field_length').AsInteger;
+  F:=DS.FieldByName('RDB$NULL_FLAG');
+  if not (f.IsNull) and (F.AsInteger=1) then
+    DI.NullFlag:=True;
+  F:=DS.FieldByName('RDB$FIELD_TYPE');
+  case F.AsInteger of
+    7:DI.DataType:=dtSmallInt;
+    8:DI.DataType:=dtInteger;
+    10:DI.DataType:=dtFloat;
+    12:DI.DataType:=dtDate;
+    13:DI.DataType:=dtSmallInt;
+    14:DI.DataType:=dtChar;
+    16:DI.DataType:=dtBigInt;
+    27:DI.DataType:=dtDoublePrec;
+    35:DI.DataType:=dtTimeStamp;
+    37:DI.DataType:=dtVarChar;
+    261:DI.DataType:=dtBlob;
+  end;
+  F:=DS.FieldByName('RDB$FIELD_SUB_TYPE');
+  V:=0;
+  if not F.IsNull then V:=F.AsInteger;
+  DI.SubType:=V;
+  DI.Precision:=DS.FieldByName('rdb$field_precision').AsInteger;
+  DI.Scale:=-DS.FieldByName('rdb$field_scale').AsInteger;
+  if (DI.Scale<>0) or (DI.Precision<>0) then begin
+    if DI.SubType=1 then DI.DataType:=dtNumeric;
+    if DI.SubType=2 then DI.DataType:=dtDecimal;
+  end;
+end;
 
+procedure TFBConnectionInfo.GetViewList(AList: TStrings; UseFlag: Boolean);
+var SQL:string;
+    DS:TSQLQuery;
+    S,S1:string;
+begin
+  //name:sf:sn
+  SQL:='select rdb$view_name from rdb$view_relations';
+  DS:=GetDS(SQL);
+  while not DS.EOF do begin
+    S:=DS.Fields[0].AsString.Trim();
+    if UseFlag then begin
+      S:=S+':0:0';
+    end;
+    AList.Add(S);
+    DS.Next;
+  end;
+  CloseDS(DS);
+end;
+
+procedure TFBConnectionInfo.FillView(AView: TBaseMetaInfo);
+var DS:TSQLQuery;
+    S:string;
+    F:TFieldInfo;
+    V:TViewInfo absolute AView;
+begin
+  //поля вьюхи
+  AView.Loaded:=True;
+  S:='select RDB$FIELD_NAME from RDB$Relation_fields where rdb$relation_NAME='''
+    +AView.Name+'''';
+  DS:=GetDS(S);
+  while not DS.EOF do begin
+    F:=V.AddField;
+    F.Name:=DS.Fields[0].AsString.Trim;
+    F.Table:=AView.Name;
+    FillField(F);
+    DS.Next;
+  end;
+  S:='select rdb$view_name, rdb$relation_name, rdb$view_context '+
+    'from rdb$view_relations where rdb$view_name='''+AView.Name+''' '+
+    'order by 2';
+  DS.Close;
+  DS.SQL.Text:=S;
+  DS.Open;
+  while not DS.EOF do begin
+    V.Tables.Add(DS.FieldByName('rdb$relation_name').AsString.Trim);
+    DS.Next;
+  end;
+  CloseDS(DS);
+end;
+
+procedure TFBConnectionInfo.FillField(AField: TBaseMetaInfo);
+var SQL:string;
+    FI:TFieldInfo absolute AField;
+    DS:TSQLQuery;
+begin
+  SQL:='select rdb$field_name, RDB$FIELD_SOURCE, rdb$base_field,rdb$field_position, ' +
+    'RDB$UPDATE_FLAG, RDB$NULL_FLAG, rdb$default_source, rdb$view_context '+
+    'from RDB$RELATION_FIELDS where rdb$field_name = ''' + FI.Name+''' and '+
+    'RDB$RELATION_NAME = '''+FI.Table+'''';
+  DS:=GetDS(SQL);
+  FI.DomainInfo:=DS.FieldByName('RDB$FIELD_SOURCE').AsString;
+  FI.BaseField:=DS.FieldByName('rdb$base_field').AsString;
+  FI.Position:=DS.FieldByName('rdb$field_position').AsInteger;
+  FI.UpdateFlag:=DS.FieldByName('RDB$UPDATE_FLAG').AsInteger = 1;
+  FI.NullFlag:=DS.FieldByName('RDB$NULL_FLAG').AsInteger=1;
+  FI.DefValue:=DS.FieldByName('rdb$default_source').AsString;
+  FI.ViewContext:=DS.FieldByName('rdb$view_context').AsInteger;
+  FI.Loaded:=True;
+end;
+
+procedure TFBConnectionInfo.GetIndexList(AList: TStrings; UseFlag: Boolean);
+var S:string;
+    DS:TSQLQuery;
+begin
+  S:='select RDB$INDEX_NAME from rdb$indices WHERE RDB$SYSTEM_FLAG <> 1';
+  DS:=GetDS(S);
+  while not DS.EOF do begin
+    S:=DS.FieldByName('RDB$INDEX_NAME').AsString.Trim;
+    if UseFlag then begin
+      S:=S+':0:';
+      if Pos('RDB$',S)=1 then S:=S+'1'
+      else S:=S+'0';
+    end;
+    AList.Add(S);
+    DS.Next;
+  end;
+end;
+
+procedure TFBConnectionInfo.FillIndex(AIndex: TBaseMetaInfo);
+var S:string;
+    DS:TSQLQuery;
+    AI:TIndexInfo absolute AIndex;
+begin
+  S:='select RDB$INDEX_NAME, RDB$RELATION_NAME, RDB$UNIQUE_FLAG, RDB$INDEX_TYPE, '+
+    ' RDB$FOREIGN_KEY from rdb$indices WHERE RDB$INDEX_NAME = '''+AIndex.Name+'''';
+  DS:=GetDS(S);
+  if DS.RecordCount<>1 then
+    raise EInvalidObject('Invalid index '+AIndex.Name);
+  AI.Askending:=DS.FieldByName('RDB$INDEX_TYPE').AsInteger<>1;
+  AI.Unique:=DS.FieldByName('RDB$UNIQUE_FLAG').AsInteger=1;
+  AI.TableName:=DS.FieldByName('RDB$RELATION_NAME').AsString;
+  AI.ForeignKey:=DS.FieldByName('RDB$FOREIGN_KEY').AsString;
+  DS.Close;
+  DS.SQL.Text:='select rdb$field_name from rdb$index_segments '+
+    ' where RDB$INDEX_NAME=''%s'' order by RDB$field_POSITION'.Format([AI.Name]);
+  DS.Open;
+  while not DS.EOF do begin
+    S:=DS.Fields[0].AsString.Trim;
+    AI.Fields.Add(S);
+    DS.Next;
+  end;
+  CloseDS(DS);
 end;
 
 constructor TFBConnectionInfo.Create;
@@ -194,6 +507,34 @@ begin
   inherited Create;
   FFill[mtDomain]:=@FillDomain;
   FGet[mtDomain]:=@GetDomainList;
+  FFill[mtView]:=@FillView;
+  FGet[mtView]:=@GetViewList;
+  FGet[mtIndex]:=@GetIndexList;
+  FFill[mtIndex]:=@FillIndex;
+end;
+
+function TFBConnectionInfo.GetDS(ASQL: string): TSQLQuery;
+var T:TSQLTransaction;
+begin
+  Result:=TSQLQuery.Create(nil);
+  Result.DataBase:=FConnection;
+  T:=TSQLTransaction.Create(nil);
+  T.DataBase:=FConnection;
+  Result.Transaction:=T;
+  if ASQL<>'' then begin
+    Result.SQL.Text:=ASQL;
+    Result.Active:=True;
+  end;
+end;
+
+procedure TFBConnectionInfo.CloseDS(AQuery: TSQLQuery);
+var T:TDBTransaction;
+begin
+  AQuery.Active:=False;
+  T:=AQuery.Transaction;
+  AQuery.Transaction:=nil;
+  T.Free;
+  AQuery.Free;
 end;
 
 { TFBGenerator }
@@ -350,8 +691,19 @@ end;
 { TFBIndexList }
 
 procedure TFBIndexList.CreateChildren;
+var S:string;
+    SL:TStringList;
+    i:Integer;
+    ii:TFBIndex;
 begin
-  FDisplayName:='Indexes';
+  if FItems<>nil then Exit;
+  FItems:=TDBItemsList.Create;
+  SL:=TFBDB(FRootItem).FBConnInfo.MetaData.GetNamesList(mtIndex);
+  for I:=0 to SL.Count-1 do begin
+    ii:=TFBIndex.Create(FRootItem);
+    ii.FDisplayName:=SL[I];
+    FItems.Add(ii);
+  end;
 end;
 
 procedure TFBIndexList.AfterConstruction;
@@ -407,7 +759,6 @@ end;
 
 procedure TFBTriggerList.CreateChildren;
 begin
-  FDisplayName:='Triggers';
 end;
 
 procedure TFBTriggerList.AfterConstruction;
@@ -432,8 +783,20 @@ end;
 { TFBViewList }
 
 procedure TFBViewList.CreateChildren;
+var SL:TStringList;
+    I:Integer;
+    T:TFBView;
 begin
-  FDisplayName:='Views';
+  if FItems<> nil then Exit;
+  FItems:=TDBItemsList.Create(True);
+  SL:=TFBDB(FRootItem).FBConnInfo.MetaData.GetNamesList(mtView);
+  if SL=nil then Exit;
+  for I:=0 to SL.Count-1 do begin
+    T:=TFBView.Create(Self.FRootItem);
+    T.FDisplayName:=SL[I];
+    FItems.Add(T);
+  end;
+  SL.Free;
 end;
 
 procedure TFBViewList.AfterConstruction;
@@ -442,12 +805,30 @@ begin
   FDisplayName:='Views';
 end;
 
+
 { TFBDomainList }
 
 procedure TFBDomainList.CreateChildren;
 var SL:TStringList;
+    I:Integer;
+    T:TFBDomain;
 begin
-  TFBDB(FRootItem).FBConnInfo.MetaData.GetNamesList(mtDomain);
+  Log('Domain List Create Children');
+  if FItems<>nil then Exit;
+  FItems:=TDBItemsList.Create(True);
+  SL:=TFBDB(FRootItem).FBConnInfo.MetaData.GetNamesList(mtDomain);
+  if SL=nil then Exit;
+  for I:=0 to SL.Count-1 do begin
+    T:=TFBDomain.Create(Self.FRootItem);
+    T.FDisplayName:=SL[I];
+    FItems.Add(T);
+  end;
+  SL.Free;
+end;
+
+function TFBDomainList.HasChildren: boolean;
+begin
+  Result:=True;
 end;
 
 function TFBDomainList.GetSelect: string;
@@ -505,9 +886,10 @@ end;
 { TFBDB }
 
 function TFBDB.GetDS(ASQL: string): TSQLQuery;
-var T:TSQLTransaction;
+//var T:TSQLTransaction;
 begin
-  Result:=TSQLQuery.Create(nil);
+  Result:=FBConnInfo.GetDS(ASQL);
+  {Result:=TSQLQuery.Create(nil);
   Result.DataBase:=FConnection;
   T:=TSQLTransaction.Create(nil);
   T.DataBase:=FConnection;
@@ -515,17 +897,18 @@ begin
   if ASQL<>'' then begin
     Result.SQL.Text:=ASQL;
     Result.Active:=True;
-  end;
+  end;}
 end;
 
 procedure TFBDB.CloseDS(AQuery: TSQLQuery);
-var T:TDBTransaction;
+//var T:TDBTransaction;
 begin
-  AQuery.Active:=False;
+  FBConnInfo.CloseDS(AQuery);
+{  AQuery.Active:=False;
   T:=AQuery.Transaction;
   AQuery.Transaction:=nil;
   T.Free;
-  AQuery.Free;
+  AQuery.Free;}
 end;
 
 procedure TFBDB.CreateChildren;

@@ -202,8 +202,8 @@ type
 
     }
 
-  TDataType = (dtUnk, dtSmallInt, dtInteger, dtBigInt, dtFloat, tdDate, tdTime,
-    tdTimeStamp, tdChar, tsVarChar, tdDoublePrec, tdBlob);
+  TDataType = (dtUnk, dtSmallInt, dtInteger, dtBigInt, dtFloat, dtDate, dtTime,
+    dtTimeStamp, dtChar, dtVarChar, dtDoublePrec, dtBlob, dtDecimal, dtNumeric);
 
   TMetaType = (mtUnk, mtDomain, mtField, mtTable, mtView, mtIndex, mtTrigger,
     mtFKey);
@@ -279,11 +279,15 @@ type
   TFieldInfo = class(TBaseMetaInfo)
     private
       FAutoInc: TAutoIncMethod;
+      FBaseField: string;
+      FCheck: string;
       FDefValue: string;
       FDomainInfo: string;//other data for field meta //fb - use system domain
       FNullFlag: boolean;
       FPosition: Integer;
+      FTable: string;
       FUpdateFlag: boolean;
+      FViewContext: Integer;
     public
       constructor Create;override;
       destructor Destroy;override;
@@ -292,6 +296,11 @@ type
       property UpdateFlag:boolean read FUpdateFlag write FUpdateFlag; //0 if computed(read-only), 1 - normal
       property NullFlag:boolean read FNullFlag write FNullFlag;//True if NOT NULL
       property DefValue:string read FDefValue write FDefValue;
+      property Check:string read FCheck write FCheck;
+      property BaseField:string read FBaseField write FBaseField;       //for views
+      property ViewContext:Integer read FViewContext write FViewContext; //for views
+      property Table:string read FTable write FTable;
+
       property AutoInc:TAutoIncMethod read FAutoInc write FAutoInc;//none if  not AI
     end;
 
@@ -301,6 +310,7 @@ type
     private
       FAskending: boolean;
       FFields: TStringList;
+      FForeignKey: string;
       FTableName: string;
       FUnique: Boolean;
     public
@@ -310,6 +320,7 @@ type
       property Fields:TStringList read FFields;
       property Unique:Boolean read FUnique write FUnique;
       property Askending:boolean read FAskending write FAskending;
+      property ForeignKey:string read FForeignKey write FForeignKey;
   end;
 
   { TFKeyInfo }
@@ -361,11 +372,24 @@ type
     end;
 
 
+  { TViewInfo }
+
   TViewInfo = class (TBaseMetaInfo)
     private
+      FTables: TStringList;
+      FTriggers: TStringList;
+      FFields:TFieldsList;
+      function GetFieldCount: Integer;
+      function GetFields(I: Integer): TFieldInfo;
 
     public
-
+      constructor Create;override;
+      destructor Destroy; override;
+      property Fields[I:Integer]:TFieldInfo read GetFields;//fields - use only in table context
+      property FieldCount:Integer read GetFieldCount;
+      property Triggers:TStringList read FTriggers;//list of trigger names on this table
+      property Tables:TStringList read FTables;
+      function AddField:TFieldInfo;
   end;
 
 
@@ -415,6 +439,7 @@ type
       procedure DoFillObject(AMetaInfo:TBaseMetaInfo);
       procedure DoGetNames(AMetaType:TMetaType);//if Need Force, clear Array
       function GetTypedObject(AMetaType:TMetaType; AName:string):TBaseMetaInfo;
+      function GetViews(AName: string): TViewInfo;
     public
       constructor Create;
       destructor Destroy; override;
@@ -423,9 +448,10 @@ type
       property Domains[AName:string]:TDomainInfo read GetDomains;
       property Indices[AName:string]:TIndexInfo read GetIndices;
       property Triggers[AName:string]:TTriggerInfo read GetTriggers;
+      property Views[AName:string]:TViewInfo read GetViews;
       property ForeignKeys[AName:string]:TFKeyInfo read GetForeignKeys;
       function GetNamesList(AMetaType:TMetaType):TStringList;
-      function GetEmptyObject(AMetaType:TMetaType):TBaseMetaInfo;
+      function GetEmptyObject(AName:string; AMetaType:TMetaType):TBaseMetaInfo;
       property OnGetNames:TGetNamesListEvent read FOnGetNames write FOnGetNames;
       property OnFillObject:TFillObjectEvent read FOnFillObject write FOnFillObject;
   end;
@@ -438,27 +464,60 @@ implementation
 const MetaTypes : array [TMetaType] of TBaseMetaClass = (TBaseMetaInfo, TDomainInfo,
   TFieldInfo, TTableInfo, TViewInfo, TIndexInfo, TTriggerInfo, TFKeyInfo);
 
+const MetaNames : array [TMetaType] of string = ('Unknow', 'Domain', 'Field', 'Table',
+  'View', 'Index', 'Trigger', 'ForeignKey');
+
+{ TViewInfo }
+
+function TViewInfo.GetFieldCount: Integer;
+begin
+  Result:=FFields.Count;
+end;
+
+function TViewInfo.GetFields(I: Integer): TFieldInfo;
+begin
+  Result:=FFields[I];
+end;
+
+constructor TViewInfo.Create;
+begin
+  inherited Create;
+  FMetaType:=mtView;
+  FTables:=TStringList.Create;
+  FTriggers:=TStringList.Create;
+  FFields:=TFieldsList.Create(True);
+end;
+
+destructor TViewInfo.Destroy;
+begin
+  FTables.Free;
+  FFields.Free;
+  FTriggers.Free;
+  inherited Destroy;
+end;
+
+function TViewInfo.AddField: TFieldInfo;
+begin
+  Result:=TFieldInfo.Create;
+  FFields.Add(Result);
+end;
+
 
 { TMetaData }
 
 function TMetaData.GetDomains(AName: string): TDomainInfo;
 begin
-  {if FArray[mtDomain].Count=0 then
-    DoGetNames(mtDomain);
-  Result:=FArray[mtDomain].KeyData[AName];
-  if not Result.FLoaded then
-    DoFillObjects(Result);}
   Result:=GetTypedObject(mtDomain,AName) as TDomainInfo;
 end;
 
 function TMetaData.GetForeignKeys(AName: string): TFKeyInfo;
 begin
-    Result:=GetTypedObject(mtDomain,AName) as TFKeyInfo;
+    Result:=GetTypedObject(mtFKey,AName) as TFKeyInfo;
 end;
 
 function TMetaData.GetIndices(AName: string): TIndexInfo;
 begin
-    Result:=GetTypedObject(mtDomain,AName) as TIndexInfo;
+  Result:=GetTypedObject(mtIndex,AName) as TIndexInfo;
 end;
 
 function TMetaData.GetObjects(AName: string): TBaseMetaInfo;
@@ -480,12 +539,12 @@ end;
 
 function TMetaData.GetTables(AName: string): TTableInfo;
 begin
-  Result:=GetTypedObject(mtDomain,AName) as TTableInfo;
+  Result:=GetTypedObject(mtTable,AName) as TTableInfo;
 end;
 
 function TMetaData.GetTriggers(AName: string): TTriggerInfo;
 begin
-  Result:=GetTypedObject(mtDomain,AName) as TTriggerInfo;
+  Result:=GetTypedObject(mtTrigger,AName) as TTriggerInfo;
 end;
 
 procedure TMetaData.DoFillObject(AMetaInfo: TBaseMetaInfo);
@@ -496,17 +555,17 @@ begin
 end;
 
 procedure TMetaData.DoGetNames(AMetaType: TMetaType);
-var SL:TStrings;
+var SL:TStringList;
   procedure LoadNames;
-  var S:string;
+  var I:Integer;
       SA:TStringArray;
       mi:TBaseMetaInfo;
       CClass:TBaseMetaClass;
   begin
     //Name:SystemFlag:SystemName
     CClass:=MetaTypes[AMetaType];
-    for S in SL do begin
-      SA:=S.Split([':']);
+    for I:=0 to SL.Count-1 do begin
+      SA:=SL[I].Split([':']);
       mi:=CClass.Create;
       mi.FName:=SA[0];
       if SA[1] = '1' then
@@ -540,6 +599,11 @@ begin
   Result:=FArray[AMetaType].KeyData[AName];
   if not Result.FLoaded then
     DoFillObject(Result);
+end;
+
+function TMetaData.GetViews(AName: string): TViewInfo;
+begin
+  Result:=GetTypedObject(mtView,AName) as TViewInfo;
 end;
 
 constructor TMetaData.Create;
@@ -577,12 +641,13 @@ begin
   end;
 end;
 
-function TMetaData.GetEmptyObject(AMetaType: TMetaType): TBaseMetaInfo;
+function TMetaData.GetEmptyObject(AName: string; AMetaType: TMetaType
+  ): TBaseMetaInfo;
 begin
   Result:=nil;
-  //Result:=MetaTypes[AMetaType].Create;
-  //FArray[AMetaType].;
-  //need name for insert in maps
+  Result:=MetaTypes[AMetaType].Create;
+  Result.FName:=AName;
+  FArray[AMetaType].KeyData[AName]:=Result;
 end;
 
 { TTriggerInfo }
@@ -618,7 +683,7 @@ end;
 constructor TTableInfo.Create;
 begin
   inherited Create;
-  FForeignKeys:= TStringList.Create;
+  FForeignKeys:=TStringList.Create;
   FIndices:=TStringList.Create;
   FPrimaryKey:='';
   FTriggers:= TStringList.Create;
@@ -667,7 +732,7 @@ end;
 constructor TBaseMetaInfo.Create;
 begin
   FName:='';
-  FSystemFlag:=True;
+  FSystemFlag:=False;
   FLoaded:=False;
   FMetaType:=mtUnk;
   FSystemName:=False;
@@ -711,6 +776,7 @@ begin
   FTableName:='';
   FUnique:=False;
   FFields:=TStringList.Create;
+  FForeignKey:='';
 end;
 
 destructor TIndexInfo.Destroy;
@@ -730,6 +796,7 @@ begin
   FUpdateFlag:=False;
   FNullFlag:=False;
   FDefValue:='';
+  FCheck:='';
   FAutoInc:=aimNone;
 end;
 
