@@ -200,13 +200,28 @@ type
   И создать отдельно класс TRootDBItem -  он хранит в себе ссылку на TConmnectionInfo
 
 
-    }
+  Для однообразия отображения надо перетащить в этот модуль все процедуры отображения
+  объектов БД. Причем сделать процедуру отображения нескольких уровней, как миниум
+  краткой и полной. Краткая помещается в маленько окошко под деревом объектов БД,
+  полная отображается в отдельном окне, и там есть вся инфа по объекту, которую
+  только можно вывести, например, для таблицы выводятся все чеки, индексы и
+  привязанные триггеры, для вьюхи выводится список полей с указанием типов и так далее
+
+  Объекты класса TDBBaseItem только управляют порядком вывода краткой инфы и
+  группируют что есть в базе, и ничего не знают о том, что они показывают
+
+  Надо сделать правильные Update - только MetaClasses знают о связях между
+  объектами. И при Update надо чтобы было 2 режима - заполнить все и
+  обновить. хотя там не более 200-300 объектов, там хоть все вали, быстро
+  обновится, тем более что там все по требованию
+
+  }
 
   TDataType = (dtUnk, dtSmallInt, dtInteger, dtBigInt, dtFloat, dtDate, dtTime,
     dtTimeStamp, dtChar, dtVarChar, dtDoublePrec, dtBlob, dtDecimal, dtNumeric);
 
   TMetaType = (mtUnk, mtDomain, mtField, mtTable, mtView, mtIndex, mtTrigger,
-    mtFKey);
+    mtFKey, mtProc, mtGen);
 
   TAutoIncMethod = (aimNone, aimDataType, aimTrigger);
 
@@ -242,6 +257,7 @@ type
       property Loaded:boolean read FLoaded write FLoaded; // данный элемент полностью загружен
       property MetaType:TMetaType read FMetaType write FMetaType; // тип меты, в общем то можно было обойтись и типом класса - они должэны дублировать друг друга
       property SystemName:boolean read FSystemName write FSystemName;//имя элемента задано системой
+      function GetData(Level:Integer = 0):TStrings;virtual;
   end;
 
   TBaseMetaClass = class of TBaseMetaInfo;
@@ -272,6 +288,7 @@ type
       property Check:string read FCheck write FCheck;
       property DefValue:string read FDefValue write FDefValue;
       property Computed:string read FComputed write FComputed;
+      function GetData(Level:Integer = 0):TStrings;override;
   end;
 
   { TFieldInfo }
@@ -321,6 +338,7 @@ type
       property Unique:Boolean read FUnique write FUnique;
       property Askending:boolean read FAskending write FAskending;
       property ForeignKey:string read FForeignKey write FForeignKey;
+      function GetData(Level:Integer = 0):TStrings;override;
   end;
 
   { TFKeyInfo }
@@ -381,7 +399,6 @@ type
       FFields:TFieldsList;
       function GetFieldCount: Integer;
       function GetFields(I: Integer): TFieldInfo;
-
     public
       constructor Create;override;
       destructor Destroy; override;
@@ -390,6 +407,7 @@ type
       property Triggers:TStringList read FTriggers;//list of trigger names on this table
       property Tables:TStringList read FTables;
       function AddField:TFieldInfo;
+      function GetData(Level: Integer=0): TStrings; override;
   end;
 
 
@@ -412,6 +430,24 @@ type
       property Text:string read FText write FText;//trigger text
   end;
 
+  TProcInfo = class (TBaseMetaInfo)
+
+
+  end;
+
+  { TGenInfo }
+
+  TGenInfo = class (TBaseMetaInfo)
+    private
+      FGenID: Integer;
+      FValue: Integer;
+    public
+      constructor Create;override;
+      destructor Destroy; override;
+      property GenID:Integer read FGenID write FGenID;
+      property Value:Integer read FValue write FValue;
+      function GetData(Level: Integer=0): TStrings; override;
+  end;
 
   TGetNamesListEvent = procedure (AMetaType:TMetaType; AList:TStrings; UseFlag:Boolean) of object;
   //if UseFlags, then format of string is Name:SystemFlag:SystemName (SystemFlag and SystemName in (0,1));
@@ -438,7 +474,6 @@ type
       function GetTriggers(AName: string): TTriggerInfo;
       procedure DoFillObject(AMetaInfo:TBaseMetaInfo);
       procedure DoGetNames(AMetaType:TMetaType);//if Need Force, clear Array
-      function GetTypedObject(AMetaType:TMetaType; AName:string):TBaseMetaInfo;
       function GetViews(AName: string): TViewInfo;
     public
       constructor Create;
@@ -452,20 +487,50 @@ type
       property ForeignKeys[AName:string]:TFKeyInfo read GetForeignKeys;
       function GetNamesList(AMetaType:TMetaType):TStringList;
       function GetEmptyObject(AName:string; AMetaType:TMetaType):TBaseMetaInfo;
+      function GetTypedObject(AMetaType:TMetaType; AName:string):TBaseMetaInfo;
       property OnGetNames:TGetNamesListEvent read FOnGetNames write FOnGetNames;
       property OnFillObject:TFillObjectEvent read FOnFillObject write FOnFillObject;
   end;
 
 
+const
+  MetaNames : array [TMetaType] of string = ('Unknow', 'Domain', 'Field', 'Table',
+    'View', 'Index', 'Trigger', 'ForeignKey', 'Procedure', 'Sequence');
+
+  TypeNames : array[TDataType] of string = ('', 'SMALLINT','INTEGER','BIGINT',
+    'FLOAT','DATE','TIME','TIMESTAMP','CHAR','VARCHAR','DOUBLE PRECISION','BLOB',
+    'DECIMAL','NUMERIC');
+
+
 
 implementation
 
-
 const MetaTypes : array [TMetaType] of TBaseMetaClass = (TBaseMetaInfo, TDomainInfo,
-  TFieldInfo, TTableInfo, TViewInfo, TIndexInfo, TTriggerInfo, TFKeyInfo);
+  TFieldInfo, TTableInfo, TViewInfo, TIndexInfo, TTriggerInfo, TFKeyInfo, TProcInfo,
+  TGenInfo);
 
-const MetaNames : array [TMetaType] of string = ('Unknow', 'Domain', 'Field', 'Table',
-  'View', 'Index', 'Trigger', 'ForeignKey');
+{ TGenInfo }
+
+constructor TGenInfo.Create;
+begin
+  inherited Create;
+  FValue:=0;
+  FGenID:=0;
+  FMetaType:=mtGen;
+end;
+
+destructor TGenInfo.Destroy;
+begin
+  inherited Destroy;
+end;
+
+function TGenInfo.GetData(Level: Integer): TStrings;
+begin
+  Result:=inherited GetData(Level);
+  Result.Add('Name: ' + Name);
+  Result.Add('GenID: ' + FGenID.ToString);
+  Result.Add('Value: ' + FValue.ToString);
+end;
 
 { TViewInfo }
 
@@ -500,6 +565,20 @@ function TViewInfo.AddField: TFieldInfo;
 begin
   Result:=TFieldInfo.Create;
   FFields.Add(Result);
+end;
+
+function TViewInfo.GetData(Level: Integer): TStrings;
+var FI:TFieldInfo;
+    S:string;
+    I:Integer;
+begin
+  Result:=inherited GetData(Level);
+  Result.Add('TABLES: ' + string('').Join(', ',Tables.ToStringArray));
+  for I:=0 to FieldCount-1 do begin
+    FI:=Fields[I];
+    S:=FI.Name+': '+Tables[FI.ViewContext-1]+'.'+FI.Name;
+    Result.Add(S);
+  end;
 end;
 
 
@@ -727,6 +806,32 @@ begin
   FComputed:='';
 end;
 
+function TDomainInfo.GetData(Level: Integer): TStrings;
+var S:string;
+begin
+  Result:=inherited GetData(Level);
+  Result.Add('NAME:'+FName);
+  S:=TypeNames[DataType];
+  if DataType in [dtDecimal,dtNumeric] then
+    S:=S+'('+Precision.ToString+','+Scale.ToString+')';
+  if DataType in [dtChar,dtVarChar] then
+    S:=S+'('+DataLen.ToString+')';
+  if DataType = dtBlob then
+    S:=S+' SUB TYPE 1';
+  Result.Add('TYPE:'+S);
+  if DefValue<>'' then
+    Result.Add('DEFAULT:'+DefValue);
+  if Check<>'' then
+    Result.Add('CHECK:'+Check);
+  if Computed<>'' then
+    Result.Add('COMPUTED:'+Computed);
+  if NullFlag then Result.Add('NOT NULL');
+  if SystemFlag then
+    Result.Add('SYSTEM FLAG:1');
+  if SystemName then
+    Result.Add('SYSTEM NAMED:1');
+end;
+
 { TBaseMetaInfo }
 
 constructor TBaseMetaInfo.Create;
@@ -745,6 +850,11 @@ begin
   Result.FSystemFlag:=FSystemFlag;
   Result.FLoaded:=False;
   Result.FMetaType:=FMetaType;
+end;
+
+function TBaseMetaInfo.GetData(Level: Integer): TStrings;
+begin
+  Result:=TStringList.Create;
 end;
 
 { TFKeyInfo }
@@ -783,6 +893,21 @@ destructor TIndexInfo.Destroy;
 begin
   FFields.Free;
   inherited Destroy;
+end;
+
+function TIndexInfo.GetData(Level: Integer): TStrings;
+begin
+  Result:=inherited GetData(Level);
+  Result.Add('TABLE: ' + TableName);
+  Result.Add('FIELDS: '+ string('').Join(', ',Fields.ToStringArray));
+  if ForeignKey<>'' then
+    Result.Add('FOREIGN KEY: '+ ForeignKey);
+  if Unique then
+    Result.Add('UNIQUE');
+  if Askending then
+    Result.Add('ASKENDING')
+  else
+    Result.Add('DESKENDING');
 end;
 
 

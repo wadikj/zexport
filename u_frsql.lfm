@@ -8,8 +8,8 @@ object frSQL: TfrSQL
   Font.Height = -16
   ParentFont = False
   TabOrder = 0
-  DesignLeft = 806
-  DesignTop = 383
+  DesignLeft = 515
+  DesignTop = 222
   object Panel1: TPanel
     Left = 0
     Height = 478
@@ -56,6 +56,7 @@ object frSQL: TfrSQL
       ParentFont = False
       ReadOnly = True
       RowSelect = True
+      ShowColumnHeaders = False
       TabStop = False
       TabOrder = 1
       ViewStyle = vsReport

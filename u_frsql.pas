@@ -186,6 +186,14 @@ type
   //UpdateCildren - тупо валит детей, и приваивает полям nil
   //иначе будет жопа на больших БД с кучей таблиц
 
+  {В потомках надо переопределить - тип поддерживаемых данных
+  и имеются ли дети
+  если у нас объект содержит что то сложное, то переопределяем
+  CreateChildren
+  возможно, сначала переопределяем базу для корректных ссылок и вставку туда
+  нужного ConnectionInfo, а потом переопределяем списочный и единичный итемы
+  }
+
   { TDBBaseItem }
 
   TDBBaseItem = class
@@ -200,11 +208,13 @@ type
       function GetSupported: TItemFeatures;virtual;
     protected
       FDisplayName: string;
+      FMetaSupport:TMetaType;
       procedure CreateChildren;virtual;
       procedure CreateData;virtual;
       function HasChildren:boolean;virtual;
+      function HasData:boolean;virtual;
     public
-      constructor Create(ARoot:TDBBaseItem = nil);virtual;
+      constructor Create(ARoot: TDBBaseItem=nil; AMetaType:TMetaType = mtUnk); virtual;
       destructor Destroy; override;
       property DisplayName:string read FDisplayName;
       property ChildCount:integer read GetChildCount;
@@ -452,6 +462,11 @@ begin
   Result:=True;
 end;
 
+function TDBBaseItem.HasData: boolean;
+begin
+  Result:=False;
+end;
+
 function TDBBaseItem.GetChild(I: integer): TDBBaseItem;
 begin
   Result:=nil;
@@ -486,12 +501,13 @@ begin
     Result:='';
 end;
 
-constructor TDBBaseItem.Create(ARoot: TDBBaseItem);
+constructor TDBBaseItem.Create(ARoot: TDBBaseItem; AMetaType: TMetaType);
 begin
   FRootItem:=ARoot;
   FItems:=nil;
   FData:=nil;
-  FDisplayName:='';
+  FMetaSupport:=AMetaType;
+  FDisplayName:=MetaNames[FMetaSupport];
 end;
 
 destructor TDBBaseItem.Destroy;
@@ -506,10 +522,6 @@ procedure TDBBaseItem.UpdateChilds;
 begin
   FreeAndNil(FItems);
   FreeAndNil(FData);
-{  if FItems<>nil then
-    FItems.Clear //FreeAndNil(FItems)
-  else
-    FItems:=TDBItemsList.Create(True);//del}
   CreateChildren;
   CreateData;
 end;

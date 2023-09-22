@@ -5,7 +5,7 @@ unit u_sqliteinfo;
 interface
 
 uses
-  Classes, SysUtils, u_frSQL, DB, SQLDB, SQLite3Conn, fgl ;
+  Classes, SysUtils, u_frSQL, DB, SQLDB, SQLite3Conn, fgl , u_metainfo;
 
 type
 
@@ -21,7 +21,7 @@ type
       function GetChildCount: integer;override;
       property DB:TSQLiteDB read GetDB;
     public
-      constructor Create(ARoot:TDBBaseItem);override;
+      constructor Create(ARoot:TDBBaseItem; AMetaType:TMetaType);override;
   end;
 
   { TSQLiteDB }
@@ -275,7 +275,7 @@ begin
     FItems:=TDBItemsList.Create(True)
   else
     Exit;
-  il:=TSQLiteTableList.Create(Self);
+  il:=TSQLiteTableList.Create(Self,mtTable);
   FItems.Add(il);
 end;
 
@@ -304,9 +304,9 @@ begin
   Result:=FItems.Count;
 end;
 
-constructor TItemsList.Create(ARoot: TDBBaseItem);
+constructor TItemsList.Create(ARoot: TDBBaseItem; AMetaType: TMetaType);
 begin
-  inherited Create(ARoot);
+  inherited Create(ARoot, AMetaType);
   FItems:=TDBItemsList.Create(True);
   UpdateChilds;
 end;
