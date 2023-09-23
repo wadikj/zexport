@@ -53,7 +53,7 @@
         <PackageName Value="LCL"/>
       </Item8>
     </RequiredPackages>
-    <Units Count="26">
+    <Units Count="27">
       <Unit0>
         <Filename Value="blank_zexp.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -220,6 +220,13 @@
         <Filename Value="u_metainfo.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit25>
+      <Unit26>
+        <Filename Value="u_mast_det.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frMD"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+      </Unit26>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

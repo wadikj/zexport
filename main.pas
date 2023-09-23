@@ -44,6 +44,7 @@ type
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
     MenuItem5: TMenuItem;
+    miMasterDetail: TMenuItem;
     miTabs: TMenuItem;
     miView: TMenuItem;
     miDBListStart: TMenuItem;
@@ -110,6 +111,7 @@ type
     procedure acTreeExecute(Sender: TObject);
     procedure acViewTextExecute(Sender: TObject);
     procedure ApplicationProperties1Hint(Sender: TObject);
+    procedure miMasterDetailClick(Sender: TObject);
     procedure tbStopExecClick(Sender: TObject);
     procedure tbHideWinClick(Sender: TObject);
     procedure tbScrClick(Sender: TObject);
@@ -177,7 +179,8 @@ var
 implementation
 
 uses SHDocVw_1_1_TLB, u_textview, DateUtils, u_miniLog, testreg, u_setfolders,
-  u_data, u_buttons, u_frSQL, u_connList, u_fsizes, LConvEncoding, Math;
+  u_data, u_buttons, u_frSQL, u_connList, u_fsizes, u_mast_det, LConvEncoding,
+  Math;
 
 
 {$R *.lfm}
@@ -244,6 +247,11 @@ begin
     StatusBar1.SimpleText:=(Sender as TControl).Hint
   else
     StatusBar1.SimpleText:=Application.Hint;
+end;
+
+procedure TfrmMain.miMasterDetailClick(Sender: TObject);
+begin
+  CreateFrame(TfrMD,'Master-Detail');
 end;
 
 procedure TfrmMain.acCloseActiveExecute(Sender: TObject);

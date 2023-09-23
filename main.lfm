@@ -4,7 +4,7 @@ object frmMain: TfrmMain
   Top = 190
   Width = 1201
   Caption = 'ZExport'
-  ClientHeight = 510
+  ClientHeight = 509
   ClientWidth = 1201
   Font.Height = -20
   Menu = MainMenu1
@@ -16,7 +16,7 @@ object frmMain: TfrmMain
   WindowState = wsMaximized
   object PageControl1: TPageControl
     Left = 0
-    Height = 462
+    Height = 453
     Top = 28
     Width = 1201
     ActivePage = TabSheet1
@@ -31,13 +31,13 @@ object frmMain: TfrmMain
     Options = [nboShowCloseButtons, nboKeyboardTabSwitch]
     object TabSheet1: TTabSheet
       Caption = 'Log'
-      ClientHeight = 433
+      ClientHeight = 423
       ClientWidth = 1193
       ParentShowHint = False
       ShowHint = True
       object mmLog: TMemo
         Left = 0
-        Height = 433
+        Height = 423
         Top = 0
         Width = 1193
         Align = alClient
@@ -52,8 +52,8 @@ object frmMain: TfrmMain
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Height = 20
-    Top = 490
+    Height = 28
+    Top = 481
     Width = 1201
     Font.Height = -13
     Panels = <>
@@ -81,40 +81,40 @@ object frmMain: TfrmMain
       Caption = 'New IE'
     end
     object tbCloseActive: TToolButton
-      Left = 62
+      Left = 59
       Top = 2
       Action = acCloseActive
     end
     object tbPageCode: TToolButton
-      Left = 228
+      Left = 218
       Top = 2
       Action = acViewText
     end
     object tbScr: TToolButton
-      Left = 436
+      Left = 421
       Top = 2
       Caption = 'scr'
       OnClick = tbScrClick
     end
     object tbStopExec: TToolButton
-      Left = 550
+      Left = 534
       Top = 2
       Caption = 'STOP!!!'
       OnClick = tbStopExecClick
     end
     object bttree: TToolButton
-      Left = 330
+      Left = 318
       Top = 2
       Action = acTree
     end
     object tbOptions: TToolButton
-      Left = 464
+      Left = 449
       Top = 2
       Caption = 'Настройки'
       Visible = False
     end
     object tbHideWin: TToolButton
-      Left = 610
+      Left = 595
       Top = 2
       Caption = 'Свернуть'
       OnClick = tbHideWinClick
@@ -340,6 +340,10 @@ object frmMain: TfrmMain
         Caption = 'SQL'
         object miDBs: TMenuItem
           Action = acDBs
+        end
+        object miMasterDetail: TMenuItem
+          Caption = 'Master-Detail Form'
+          OnClick = miMasterDetailClick
         end
         object miDBListStart: TMenuItem
           Caption = '-'

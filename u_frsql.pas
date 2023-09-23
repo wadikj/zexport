@@ -50,9 +50,6 @@ type
 
   }
 
-
-
-
   TDBBaseItem = class;
 
   TConnectionType = class;
@@ -233,6 +230,11 @@ procedure AddConnType(AConnType:TConnectionType);
 function ConnTypesCount:Integer;
 function GetConnType(Index:Integer):TConnectionType;
 procedure FillDBTypes(AList:TStrings);
+
+procedure FillDBList(AList:TStrings);
+function GetSQLConnection(AName:string):TSQLConnection;
+
+
 procedure CreateDB(ADB,AType:string);
 
 
@@ -276,6 +278,30 @@ var
 begin
   for I:=0 to FCTypesList.Count-1 do
     AList.Add(FCTypesList.Keys[I]);
+end;
+
+procedure FillDBList(AList: TStrings);
+var
+  I: Integer;
+begin
+  if FConnList=nil then Exit;
+  if FConnList.Count = 0 then Exit;
+  for I:=0 to FConnList.Count-1 do
+    AList.Add(FConnList.Keys[I]);
+end;
+
+function GetSQLConnection(AName: string): TSQLConnection;
+var
+  I: Integer;
+begin
+  Result:=nil;
+  if FConnList=nil then Exit;
+  if FConnList.Count = 0 then Exit;
+  for I:=0 to FConnList.Count-1 do
+    if AName=FConnList.Keys[I] then begin
+      Result:=FConnList.Data[I].FConnection;
+      Break;
+    end;
 end;
 
 procedure CreateDB(ADB, AType: string);

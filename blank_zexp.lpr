@@ -13,7 +13,7 @@ uses
   { you can add units after this }
   , u_miniLog, u_fromlist, testreg, u_setfolders, u_buttons, u_SynSearch,
   u_findtree, u_frSQL, u_sqliteinfo, u_projdata, u_connList, u_newConn,
-  u_fbinfo, u_fsizes, u_metainfo;
+  u_fbinfo, u_fsizes, u_metainfo, u_mast_det;
 
 {$R *.res}
 

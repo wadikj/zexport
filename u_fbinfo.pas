@@ -37,6 +37,9 @@ type
       procedure GetGenList(AList:TStrings; UseFlag:Boolean);
       procedure FillGen(AGen:TBaseMetaInfo);
 
+      procedure GetTriggerList(AList:TStrings; UseFlag:Boolean);
+      procedure FillTrigger(ATrigger:TBaseMetaInfo);
+
 
     public
       constructor Create;override;
@@ -418,6 +421,34 @@ begin
   CloseDS(DS);
 end;
 
+procedure TFBConnectionInfo.GetTriggerList(AList: TStrings; UseFlag: Boolean);
+var DS:TSQLQuery;
+    S:string;
+begin
+  S:='select rdb$trigger_name, rdb$system_flag from RDB$triggers where rdb$system_flag<>1 ';
+  DS:=GetDS(S);
+  while not DS.EOF do begin
+    S:=DS.Fields[0].AsString.Trim;
+    if UseFlag then begin
+      if DS.Fields[1].AsInteger<>0 then
+        S:=S+':1:1'
+      else S:=S+':0:0';
+    end;
+    DS.Next;
+  end;
+  CloseDS(DS);
+end;
+
+procedure TFBConnectionInfo.FillTrigger(ATrigger: TBaseMetaInfo);
+var
+  s: String;
+begin
+  s:='select rdb$relation_name, rdb$trigger_type, rdb$trigger_source, '+
+      ' rdb$system_flag, rdb$trigger_sequence ' +
+      ' from RDB$triggers where rdb$tRIGGER_NAME =';
+
+end;
+
 constructor TFBConnectionInfo.Create;
 var I:TMetaType;
 begin
@@ -438,6 +469,8 @@ begin
   FGet[mtGen]:=@GetGenList;
   FFill[mtGen]:=@FillGen;
 
+  FGet[mtTrigger]:=@GetTriggerList;
+  FFill[mtTrigger]:=@FillTrigger;
 end;
 
 function TFBConnectionInfo.GetDS(ASQL: string): TSQLQuery;
