@@ -11,6 +11,7 @@
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
+      <Icon Value="0"/>
     </General>
     <i18n>
       <EnableI18N LFM="False"/>
@@ -53,7 +54,7 @@
         <PackageName Value="LCL"/>
       </Item8>
     </RequiredPackages>
-    <Units Count="27">
+    <Units Count="28">
       <Unit0>
         <Filename Value="blank_zexp.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -227,6 +228,13 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Frame"/>
       </Unit26>
+      <Unit27>
+        <Filename Value="u_linkparams.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmParamsLinks"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="u_linkParams"/>
+      </Unit27>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
