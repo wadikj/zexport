@@ -49,8 +49,7 @@ object frSQL: TfrSQL
       Align = alBottom
       Columns = <      
         item
-          AutoSize = True
-          Width = 0
+          Width = 600
         end>
       Font.Height = -16
       ParentFont = False

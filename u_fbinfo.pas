@@ -19,6 +19,7 @@ type
     protected
       FGet: array [TMetaType] of TGetNamesProc;
       FFill: array [TMetaType] of TFillObjectProc;
+      function GetFieldType(ATypeIndex:Integer):TDataType;
 
       procedure GetNamesList(AMetaType:TMetaType; AList:TStrings; UseFlag:Boolean);override;
       procedure FillObject(AMetaObject:TBaseMetaInfo);override;
@@ -40,6 +41,8 @@ type
       procedure GetTriggerList(AList:TStrings; UseFlag:Boolean);
       procedure FillTrigger(ATrigger:TBaseMetaInfo);
 
+      procedure GetTablesList(AList:TStrings; UseFlag:Boolean);
+      procedure FillTable(ATable:TBaseMetaInfo);
 
     public
       constructor Create;override;
@@ -85,7 +88,7 @@ type
 
 
   //эти 2 класса пееропределяются только в случае, если они должны поддерживать
-  //иное взаимодействие с пользователем, нежели базовое
+  //иное взаимодействие с пользователем, нежели базовое, например, доп. команды пользователя
 
   { TFBItemsList }
 
@@ -104,24 +107,11 @@ type
       procedure CreateData; override;
   end;
 
-  //класы ниже надо завалить
-  { TFBTableList }
+  { TFBTable }
 
-  TFBTableList = class(TFBItem)
+  TFBTable = class (TFBChildItem)
     protected
-      function HasChildren:boolean;override;
-      procedure CreateChildren;override;
-    public
-      procedure AfterConstruction; override;
-  end;
-
-  TFBTable = class (TFBItem)
-    protected
-      function GetDataCount: integer;override;
-      function GetDataItem(I: Integer): string;override;
       function GetSupported: TItemFeatures;override;
-      function HasChildren:boolean;override;
-      procedure CreateData;override;
     public
       function GetSelect:string;override;
   end;
@@ -168,7 +158,7 @@ var SL:TStringList;
     I:Integer;
     T:TFBChildItem;
 begin
-  Log('Create Children - ' + MetaNames[FMetaSupport]);
+  //Log('Create Children - ' + MetaNames[FMetaSupport]);
   if FItems<>nil then Exit;
   FItems:=TDBItemsList.Create(True);
   SL:=TFBDB(FRootItem).FBConnInfo.MetaData.GetNamesList(FMetaSupport);
@@ -185,10 +175,29 @@ end;
 
 { TFBConnectionInfo }
 
+function TFBConnectionInfo.GetFieldType(ATypeIndex: Integer): TDataType;
+begin
+  Result:=dtUnk;
+  case ATypeIndex of
+    7:Result:=dtSmallInt;
+    8:Result:=dtInteger;
+    10:Result:=dtFloat;
+    12:Result:=dtDate;
+    13:Result:=dtSmallInt;
+    14:Result:=dtChar;
+    16:Result:=dtBigInt;
+    27:Result:=dtDoublePrec;
+    35:Result:=dtTimeStamp;
+    37:Result:=dtVarChar;
+    261:Result:=dtBlob;
+  end;
+end;
+
 procedure TFBConnectionInfo.GetNamesList(AMetaType: TMetaType; AList: TStrings;
   UseFlag: Boolean);
 var Proc:TGetNamesProc;
 begin
+  //Log('Get Names ' + MetaNames[AMetaType]);
   Proc:=FGet[AMetaType];
   if Assigned(Proc) then
     Proc(AList,UseFlag);
@@ -253,7 +262,8 @@ begin
   if not (f.IsNull) and (F.AsInteger=1) then
     DI.NullFlag:=True;
   F:=DS.FieldByName('RDB$FIELD_TYPE');
-  case F.AsInteger of
+  DI.DataType:=GetFieldType(F.AsInteger);
+{  case F.AsInteger of
     7:DI.DataType:=dtSmallInt;
     8:DI.DataType:=dtInteger;
     10:DI.DataType:=dtFloat;
@@ -265,7 +275,7 @@ begin
     35:DI.DataType:=dtTimeStamp;
     37:DI.DataType:=dtVarChar;
     261:DI.DataType:=dtBlob;
-  end;
+  end; }
   F:=DS.FieldByName('RDB$FIELD_SUB_TYPE');
   V:=0;
   if not F.IsNull then V:=F.AsInteger;
@@ -430,10 +440,17 @@ begin
   while not DS.EOF do begin
     S:=DS.Fields[0].AsString.Trim;
     if UseFlag then begin
-      if DS.Fields[1].AsInteger<>0 then
-        S:=S+':1:1'
-      else S:=S+':0:0';
+      if DS.Fields[1].AsInteger<>0 then begin
+        S:=S+':0';
+        if DS.FieldByName('rdb$system_flag').AsInteger>0 then//для чеков
+          S:=S+':1'
+        else
+          S:=S+':0';
+      end else begin
+        S:=S+':0:0';
+      end;
     end;
+    AList.Add(S);
     DS.Next;
   end;
   CloseDS(DS);
@@ -441,12 +458,83 @@ end;
 
 procedure TFBConnectionInfo.FillTrigger(ATrigger: TBaseMetaInfo);
 var
-  s: String;
+  S: String;
+  ti:TTriggerInfo absolute ATrigger;
+  DS:TSQLQuery;
 begin
-  s:='select rdb$relation_name, rdb$trigger_type, rdb$trigger_source, '+
+  S:='select rdb$relation_name, rdb$trigger_type, rdb$trigger_source, '+
       ' rdb$system_flag, rdb$trigger_sequence ' +
-      ' from RDB$triggers where rdb$tRIGGER_NAME =';
+      ' from RDB$triggers where rdb$tRIGGER_NAME ='''+ATrigger.Name+'''';
+  DS:=GetDS(S);
+  ti.TableName:=DS.FieldByName('rdb$relation_name').AsString.Trim;
+  ti.Position:=DS.FieldByName('rdb$trigger_sequence').AsInteger;
+  ti.CheckSupport:=DS.FieldByName('rdb$system_flag').AsInteger=3;
+  case DS.FieldByName('rdb$trigger_type').AsInteger of
+    1 :ti.EventSupport:=[teBeforeInsert];
+    2 :ti.EventSupport:=[teAfterInsert];
+    3 :ti.EventSupport:=[teBeforeUpdate];
+    4 :ti.EventSupport:=[teAfterUpdate];
+    5 :ti.EventSupport:=[teBeforeDelete];
+    6 :ti.EventSupport:=[teAfterDelete];
+    17:ti.EventSupport:=[teBeforeInsert,teBeforeUpdate];
+    18:ti.EventSupport:=[teAfterInsert, teAfterUpdate];
+    25:ti.EventSupport:=[teBeforeInsert,teBeforeDelete];
+    26:ti.EventSupport:=[teAfterInsert,teAfterDelete];
+    27:ti.EventSupport:=[teBeforeUpdate,teBeforeDelete];
+    28:ti.EventSupport:=[teAfterUpdate,teAfterDelete];
+    113:ti.EventSupport:=[teBeforeDelete,teBeforeInsert,teBeforeUpdate];
+    114:ti.EventSupport:=[teAfterDelete,teAfterInsert,teAfterUpdate];
+    8192:ti.EventSupport:=[teOnConnect];
+    8193:ti.EventSupport:=[teOnDisconnect];
+    8194:ti.EventSupport:=[teOnTransactionStart];
+    8195:ti.EventSupport:=[teOnTransactionCommit];
+    8196:ti.EventSupport:=[teOnTransactionRollback];
+  end;
+  ti.Text:=DS.FieldByName('rdb$trigger_source').AsString;
+end;
 
+procedure TFBConnectionInfo.GetTablesList(AList: TStrings; UseFlag: Boolean);
+var Q:TSQLQuery;
+    T:TFBTable;
+    S:string;
+begin
+  Q:=GetDS('select rdb$relation_name from RDB$RELATIONS where rdb$system_flag<>1 and rdb$view_blr is null');
+  while not Q.EOF do begin
+    S:=Q.Fields[0].AsString.Trim;
+    if UseFlag then
+      S:=S+':0:0';
+    AList.add(S);
+    Q.Next;
+  end;
+  CloseDS(Q);
+end;
+
+procedure TFBConnectionInfo.FillTable(ATable: TBaseMetaInfo);
+var S:string;
+    Q:TSQLQuery;
+    ti:TTableInfo absolute ATable;
+    fi:TFieldInfo;
+    F:TField;
+begin
+  //Log('fill table ' + ATable.Name);
+  Q:=GetDS('select rdb$field_name, rdb$field_source, rdb$field_position, rdb$update_flag, '+
+    ' rdb$default_source, rdb$system_flag, rdb$null_flag '+
+    ' from rdb$relation_fields ' +
+    ' where rdb$relation_name = '''+ATable.Name + ''' order by rdb$field_position');
+  while not Q.EOF do begin
+    fi:=ti.AddField;
+    fi.Name:=Q.FieldByName('rdb$field_name').AsString.Trim;
+    fi.Table:=ATable.Name;
+    fi.DomainInfo:=Q.FieldByName('rdb$field_source').AsString.Trim;
+    fi.Position:=Q.FieldByName('rdb$field_position').AsInteger;
+    fi.UpdateFlag:=Q.FieldByName('rdb$update_flag').AsInteger=0;
+    fi.DefValue:=Q.FieldByName('rdb$default_source').AsString;
+    fi.SystemFlag:=Q.FieldByName('rdb$system_flag').AsInteger<>0;
+    fi.NullFlag:=Q.FieldByName('rdb$null_flag').AsInteger=1;;
+    Q.Next;
+  end;
+  //need primary, foreign keys, checks and autoinc
+  CloseDS(Q);
 end;
 
 constructor TFBConnectionInfo.Create;
@@ -471,6 +559,9 @@ begin
 
   FGet[mtTrigger]:=@GetTriggerList;
   FFill[mtTrigger]:=@FillTrigger;
+
+  FGet[mtTable]:=@GetTablesList;
+  FFill[mtTable]:=@FillTable;
 end;
 
 function TFBConnectionInfo.GetDS(ASQL: string): TSQLQuery;
@@ -497,64 +588,11 @@ begin
   AQuery.Free;
 end;
 
-{ TFBGenerator }
-
 { TFBTable }
-
-function TFBTable.GetDataCount: integer;
-begin
-  CreateData;
-  if FData<>nil then Result:=FData.Count
-  else Result:=0;
-end;
-
-function TFBTable.GetDataItem(I: Integer): string;
-begin
-  if FData<>nil then Result:=FData[I]
-  else Result:='';
-end;
 
 function TFBTable.GetSupported: TItemFeatures;
 begin
   Result:=[ifGetSelect,ifGetSQL,ifUpdateChildren];
-end;
-
-function TFBTable.HasChildren: boolean;
-begin
-  Result:=False;
-end;
-
-procedure TFBTable.CreateData;
-var Q:TSQLQuery;
-    S:string;
-begin
-  if FData = nil then FData:=TStringList.Create
-  else FData.Clear;
-  log(FDisplayName+' - CreateData');
-  Q:=DB.GetDS('select rdb$relation_fields.rdb$field_name, rdb$field_type, rdb$field_length, '+
-    'rdb$relation_name from RDB$RELATION_FIELDS join rdb$fields on  '+
-    'RDB$RELATION_FIELDS.rdb$field_source = rdb$fields.rdb$field_name '+
-    'and rdb$relation_name='''+FDisplayName + ''' order by rdb$field_position');
-
-  while not Q.EOF do begin
-    S:=Trim(Q.Fields[0].AsString) + ': ';
-    case Q.Fields[1].AsInteger of
-      7:S:=S+'SMALLINT';
-      8:S:=S+'INTEGER';
-      10:S:=S+'FLOAT';
-      12:S:=S+'DATE';
-      13:S:=S+'TIME';
-      14:S:=S+'CHAR(' + Q.Fields[2].AsString + ')';
-      16:S:=S+'BIGINT';
-      27:S:=S+'DOUBLE PRECESION';
-      35:S:=S+'TIMESATMP';
-      37:S:=S+'VARCHAR(' + Q.Fields[2].AsString + ')';
-      261:S:=S+'BLOB';
-    end;
-    FData.Add(S);
-    Q.Next;
-  end;
-  DB.CloseDS(Q);
 end;
 
 function TFBTable.GetSelect: string;
@@ -606,49 +644,8 @@ function TFBConnType.GetDBItem(AInfo: TConnectionInfo): TDBBaseItem;
 begin
   Result:=TFBDB.Create(AInfo.FConnection as TIBConnection);
   TFBDB(Result).FBConnInfo:=AInfo as TFBConnectionInfo;
-  //Result.UpdateChilds;
 end;
 
-
-{ TFBTableList }
-
-function TFBTableList.HasChildren: boolean;
-var Q:TSQLQuery;
-begin
-  FDisplayName:='Tables';
-  Q:=DB.GetDS('select 1 from rdb$database where '+
-    'exists (select rdb$relation_name from RDB$RELATIONS where rdb$system_flag<>1 and rdb$relation_type <> 1)');
-  Result:=not Q.IsEmpty;
-  DB.CloseDS(Q);
-end;
-
-procedure TFBTableList.CreateChildren;
-var Q:TSQLQuery;
-    T:TFBTable;
-begin
-  Log('Table list create children!');
-  if FItems = nil then
-    FItems:=TDBItemsList.Create(True)
-  else begin
-    Log('Table list exists!');
-    Exit;
-  end;
-  FDisplayName:='Tables';
-  Q:=DB.GetDS('select rdb$relation_name from RDB$RELATIONS where rdb$system_flag<>1 and rdb$relation_type <> 1');
-  while not Q.EOF do begin
-    T:=TFBTable.Create(Self.FRootItem);
-    T.FDisplayName:=Q.Fields[0].AsString.Trim;
-    FItems.Add(T);
-    Q.Next;
-  end;
-  DB.CloseDS(Q);
-end;
-
-procedure TFBTableList.AfterConstruction;
-begin
-  inherited AfterConstruction;
-  FDisplayName:='Tables';
-end;
 
 { TFBDB }
 
@@ -672,12 +669,13 @@ begin
   FMetaSupport:=mtUnk;
   if FItems <> nil then Exit;
   FItems:=TDBItemsList.Create(True);
-  FItems.Add(TFBTableList.Create(Self));
+  //FItems.Add(TFBTableList.Create(Self));
+  FItems.Add(TFBItemsList.Create(Self, mtTable));
   FItems.Add(TFBItemsList.Create(Self, mtView));
   FItems.Add(TFBItemsList.Create(Self,mtDomain));
   FItems.Add(TFBItemsList.Create(Self,mtIndex));
   FItems.Add(TFBItemsList.Create(Self,mtGen));
-  FItems.Add(TFBItemsList.Create(Self,mtProc));
+  //FItems.Add(TFBItemsList.Create(Self,mtProc));
   FItems.Add(TFBItemsList.Create(Self,mtTrigger));
 end;
 
@@ -702,6 +700,7 @@ begin
 end;
 
 initialization
+
   AddConnType(TFBConnType.Create);
 
 end.

@@ -5,7 +5,7 @@ unit u_metainfo;
 interface
 
 uses
-  Classes, SysUtils, fgl;
+  Classes, SysUtils, fgl, contnrs;
 
 type
 
@@ -227,7 +227,7 @@ type
 
   TTriggerEvent = (teUnk, teBeforeInsert, teBeforeUpdate, teBeforeDelete,
     teAfterInsert, teAfterUpdate, teAfterDelete, teOnConnect, teOnDisconnect,
-    teOnTransactionStart, teOnTransactionCommin, teOnTransactionRollback);
+    teOnTransactionStart, teOnTransactionCommit, teOnTransactionRollback);
 
   TTriggerEvents = set of TTriggerEvent;
 
@@ -240,6 +240,8 @@ type
       ObjectType:TMetaType
   end;
 
+  TMetaData = class;
+
   { TBaseMetaInfo }
 
   TBaseMetaInfo = class
@@ -249,8 +251,11 @@ type
       FName: string;
       FSystemFlag: boolean;
       FSystemName: boolean;
+      FMetaData:TMetaData;
+    protected
+      function InList:boolean;virtual;
     public
-      constructor Create;virtual;
+      constructor Create(AMetaData:TMetaData);virtual;
       function GetEmpty:TBaseMetaInfo;
       property Name:string read FName write FName; // имя элемента
       property SystemFlag:boolean read FSystemFlag write FSystemFlag; //элемент системный
@@ -277,8 +282,10 @@ type
       FPrecision: Integer;
       FScale: Integer;
       FSubType: Integer;
+    protected
+      function InList:boolean;override;
     public
-      constructor Create;override;
+      constructor Create(AMetaData:TMetaData);override;
       property DataType:TDataType read FDataType write FDataType;
       property SubType:Integer read FSubType write FSubType;
       property DataLen:Integer read FDataLen write FDataLen;
@@ -289,6 +296,7 @@ type
       property DefValue:string read FDefValue write FDefValue;
       property Computed:string read FComputed write FComputed;
       function GetData(Level:Integer = 0):TStrings;override;
+      function GetFieldInfo:string;
   end;
 
   { TFieldInfo }
@@ -306,7 +314,7 @@ type
       FUpdateFlag: boolean;
       FViewContext: Integer;
     public
-      constructor Create;override;
+      constructor Create(AMetaData:TMetaData);override;
       destructor Destroy;override;
       property Position:Integer read FPosition write FPosition;
       property DomainInfo:string read FDomainInfo write FDomainInfo;
@@ -317,8 +325,8 @@ type
       property BaseField:string read FBaseField write FBaseField;       //for views
       property ViewContext:Integer read FViewContext write FViewContext; //for views
       property Table:string read FTable write FTable;
-
       property AutoInc:TAutoIncMethod read FAutoInc write FAutoInc;//none if  not AI
+      function GetFieldInfo:string;
     end;
 
   { TIndexInfo }
@@ -331,7 +339,7 @@ type
       FTableName: string;
       FUnique: Boolean;
     public
-      constructor Create;override;
+      constructor Create(AMetaData:TMetaData);override;
       destructor Destroy; override;
       property TableName:string read FTableName write FTableName;
       property Fields:TStringList read FFields;
@@ -352,7 +360,7 @@ type
       FRefTable: string;
       FUpdateAction: string;
     public
-      constructor Create;override;
+      constructor Create(AMetaData:TMetaData);override;
       destructor Destroy; override;
       property MainTable:string read FMainTable write FMainTable;//наша таблица
       property RefTable:string read FRefTable write FRefTable;//таблица, на которую ссылаемся
@@ -373,11 +381,11 @@ type
       FIndices: TStringList;
       FPrimaryKey: string;
       FTriggers: TStringList;
-      FFields:TFieldsList;
+      FFieldInfos:TObjectList;
       function GetFieldCount: Integer;
       function GetFields(I: Integer): TFieldInfo;
     public
-      constructor Create;override;
+      constructor Create(AMetaData:TMetaData);override;
       destructor Destroy; override;
       property Fields[I:Integer]:TFieldInfo read GetFields;//fields - use only in table context
       property FieldCount:Integer read GetFieldCount;
@@ -387,6 +395,7 @@ type
       property Indices:TStringList read FIndices;//list of index names on this table
       function AddField:TFieldInfo;
       procedure DeleteField(Info:TFieldInfo);
+      function GetData(Level: Integer=0): TStrings; override;
     end;
 
 
@@ -400,7 +409,7 @@ type
       function GetFieldCount: Integer;
       function GetFields(I: Integer): TFieldInfo;
     public
-      constructor Create;override;
+      constructor Create(AMetaData:TMetaData);override;
       destructor Destroy; override;
       property Fields[I:Integer]:TFieldInfo read GetFields;//fields - use only in table context
       property FieldCount:Integer read GetFieldCount;
@@ -420,14 +429,17 @@ type
       FPosition: Integer;
       FTableName: string;
       FText: string;
+    private
+      function InList: boolean; override;
     public
-      constructor Create;override;
+      constructor Create(AMetaData:TMetaData);override;
       destructor Destroy; override;
       property TableName:string read FTableName write FTableName;
       property Position:Integer read FPosition write FPosition;
       property EventSupport:TTriggerEvents read FEventSupport write FEventSupport; //events was trigger run
       property CheckSupport:boolean read FCheckSupport write FCheckSupport;//trigger used for constraints support
       property Text:string read FText write FText;//trigger text
+      function GetData(Level:Integer = 0):TStrings;override;
   end;
 
   TProcInfo = class (TBaseMetaInfo)
@@ -442,7 +454,7 @@ type
       FGenID: Integer;
       FValue: Integer;
     public
-      constructor Create;override;
+      constructor Create(AMetaData:TMetaData);override;
       destructor Destroy; override;
       property GenID:Integer read FGenID write FGenID;
       property Value:Integer read FValue write FValue;
@@ -501,9 +513,14 @@ const
     'FLOAT','DATE','TIME','TIMESTAMP','CHAR','VARCHAR','DOUBLE PRECISION','BLOB',
     'DECIMAL','NUMERIC');
 
-
+  TriggerEventNames : array [TTriggerEvent] of string = ('Unk', 'Before Insert',
+    'Before Update', 'Before Delete', 'After Insert', 'After Update',
+    'After Delete', 'On Connect', 'On Disconnect', 'On Transaction Start',
+    'On Transaction Commit', 'On Transaction Rollback');
 
 implementation
+
+uses u_frSQL;
 
 const MetaTypes : array [TMetaType] of TBaseMetaClass = (TBaseMetaInfo, TDomainInfo,
   TFieldInfo, TTableInfo, TViewInfo, TIndexInfo, TTriggerInfo, TFKeyInfo, TProcInfo,
@@ -511,9 +528,9 @@ const MetaTypes : array [TMetaType] of TBaseMetaClass = (TBaseMetaInfo, TDomainI
 
 { TGenInfo }
 
-constructor TGenInfo.Create;
+constructor TGenInfo.Create(AMetaData: TMetaData);
 begin
-  inherited Create;
+  inherited Create(AMetaData);
   FValue:=0;
   FGenID:=0;
   FMetaType:=mtGen;
@@ -544,9 +561,9 @@ begin
   Result:=FFields[I];
 end;
 
-constructor TViewInfo.Create;
+constructor TViewInfo.Create(AMetaData: TMetaData);
 begin
-  inherited Create;
+  inherited Create(AMetaData);
   FMetaType:=mtView;
   FTables:=TStringList.Create;
   FTriggers:=TStringList.Create;
@@ -563,7 +580,7 @@ end;
 
 function TViewInfo.AddField: TFieldInfo;
 begin
-  Result:=TFieldInfo.Create;
+  Result:=TFieldInfo.Create(FMetaData);
   FFields.Add(Result);
 end;
 
@@ -645,13 +662,14 @@ var SL:TStringList;
     CClass:=MetaTypes[AMetaType];
     for I:=0 to SL.Count-1 do begin
       SA:=SL[I].Split([':']);
-      mi:=CClass.Create;
+      mi:=CClass.Create(Self);
       mi.FName:=SA[0];
       if SA[1] = '1' then
         mi.FSystemFlag:=True;
       if SA[2] = '1' then
         mi.FSystemName:=True;
       FArray[AMetaType].KeyData[mi.FName]:=mi;
+      //Log('read item '+mi.FName);
     end;
   end;
 
@@ -661,7 +679,9 @@ begin
   if Assigned(FOnGetNames) then begin
     try
       SL:=TStringList.Create;
+      //Log('Load Names of: ' + MetaNames[AMetaType]);
       FOnGetNames(AMetaType,SL, True);
+      //Log(Format('Found %d names', [SL.Count]));
       LoadNames;
     finally
       SL.Free;
@@ -716,7 +736,8 @@ begin
     Exit;
   Result:=TStringList.Create;
   for I:=0 to FArray[AMetaType].Count-1 do begin
-    Result.Add(FArray[AMetaType].Keys[I]);
+    if FArray[AMetaType].Data[I].InList then
+      Result.Add(FArray[AMetaType].Keys[I]);
   end;
 end;
 
@@ -724,16 +745,23 @@ function TMetaData.GetEmptyObject(AName: string; AMetaType: TMetaType
   ): TBaseMetaInfo;
 begin
   Result:=nil;
-  Result:=MetaTypes[AMetaType].Create;
+  Result:=MetaTypes[AMetaType].Create(Self);
   Result.FName:=AName;
   FArray[AMetaType].KeyData[AName]:=Result;
 end;
 
 { TTriggerInfo }
 
-constructor TTriggerInfo.Create;
+function TTriggerInfo.InList: boolean;
 begin
-  inherited Create;
+  Result:=inherited InList;
+  if FSystemName then
+    Result:=False;
+end;
+
+constructor TTriggerInfo.Create(AMetaData: TMetaData);
+begin
+  inherited Create(AMetaData);
   FMetaType:=mtTrigger;
   FCheckSupport:=False;
   FEventSupport:=[];
@@ -747,26 +775,44 @@ begin
   inherited Destroy;
 end;
 
+function TTriggerInfo.GetData(Level: Integer): TStrings;
+var S:string;
+    I:TTriggerEvent;
+begin
+  Result:=inherited GetData(Level);
+  Result.Add('TABLE: '+TableName);
+  Result.Add('POSITION: '+Position.ToString);
+  S:='';
+  for I:=Low(TTriggerEvent) to High(TTriggerEvent) do begin
+    if I in EventSupport then begin
+      if S<>'' then S:=S+' OR ';
+      S:=S+TriggerEventNames[I];
+    end;
+  end;
+  Result.Add('EVENTS: '+S);
+end;
+
 { TTableInfo }
 
 function TTableInfo.GetFieldCount: Integer;
 begin
-  Result:=FFields.Count;
+  Result:=FFieldInfos.Count;
 end;
 
 function TTableInfo.GetFields(I: Integer): TFieldInfo;
 begin
-  Result:=FFields[I];
+  Result:=FFieldInfos[I] as TFieldInfo;
 end;
 
-constructor TTableInfo.Create;
+constructor TTableInfo.Create(AMetaData: TMetaData);
 begin
-  inherited Create;
+  inherited Create(AMetaData);
+  FMetaType:=mtTable;
   FForeignKeys:=TStringList.Create;
   FIndices:=TStringList.Create;
   FPrimaryKey:='';
   FTriggers:= TStringList.Create;
-  FFields:=TFieldsList.Create(True);
+  FFieldInfos:=TObjectList.Create(True);
 end;
 
 destructor TTableInfo.Destroy;
@@ -774,26 +820,41 @@ begin
   FForeignKeys.Free;
   FIndices.Free;
   FTriggers.Free;
-  FFields.Free;;
+  FFieldInfos.Free;;
   inherited Destroy;
 end;
 
 function TTableInfo.AddField: TFieldInfo;
 begin
-  Result:=TFieldInfo.Create;
-  FFields.Add(Result);
+  Result:=TFieldInfo.Create(FMetaData);
+  FFieldInfos.Add(Result);
 end;
 
 procedure TTableInfo.DeleteField(Info: TFieldInfo);
 begin
-  FFields.Remove(Info);
+  FFieldInfos.Remove(Info);
+end;
+
+function TTableInfo.GetData(Level: Integer): TStrings;
+var I:Integer;
+begin
+  Result:=inherited GetData(Level);
+  for I:=0 to FieldCount-1 do
+    Result.Add(Fields[I].Name+': '+Fields[I].GetFieldInfo);
 end;
 
 { TDomainInfo }
 
-constructor TDomainInfo.Create;
+function TDomainInfo.InList: boolean;
 begin
-  inherited Create;
+  Result:=inherited InList;
+  if FSystemName then
+    Result:=False;
+end;
+
+constructor TDomainInfo.Create(AMetaData: TMetaData);
+begin
+  inherited Create(AMetaData);
   FMetaType:=mtDomain;
   FDataType:=dtUnk;
   FSubType:=-1;
@@ -832,20 +893,47 @@ begin
     Result.Add('SYSTEM NAMED:1');
 end;
 
+function TDomainInfo.GetFieldInfo: string;
+var S:string;
+begin
+  S:=TypeNames[DataType];
+
+  if DataType in [dtDecimal,dtNumeric] then
+    S:=S+'('+Precision.ToString+','+Scale.ToString+')';
+  if DataType in [dtChar,dtVarChar] then
+    S:=S+'('+DataLen.ToString+')';
+  if DataType = dtBlob then
+    S:=S+' SUB TYPE 1';
+  if DefValue<>'' then
+    S:=S+(' DEFAULT:'+DefValue);
+  if Check<>'' then
+    S:=S+(' CHECK:'+Check);
+  if Computed<>'' then
+    S:=S+(' COMPUTED:'+Computed);
+  if NullFlag then S:=S+(' NOT NULL');
+  Result:=S;
+end;
+
 { TBaseMetaInfo }
 
-constructor TBaseMetaInfo.Create;
+function TBaseMetaInfo.InList: boolean;
+begin
+  Result:=True;
+end;
+
+constructor TBaseMetaInfo.Create(AMetaData: TMetaData);
 begin
   FName:='';
   FSystemFlag:=False;
   FLoaded:=False;
   FMetaType:=mtUnk;
   FSystemName:=False;
+  FMetaData:=AMetaData;
 end;
 
 function TBaseMetaInfo.GetEmpty: TBaseMetaInfo;
 begin
-  Result:=TBaseMetaClass(ClassType).Create;
+  Result:=TBaseMetaClass(ClassType).Create(FMetaData);
   Result.FName:=FName;
   Result.FSystemFlag:=FSystemFlag;
   Result.FLoaded:=False;
@@ -859,9 +947,9 @@ end;
 
 { TFKeyInfo }
 
-constructor TFKeyInfo.Create;
+constructor TFKeyInfo.Create(AMetaData: TMetaData);
 begin
-  inherited Create;
+  inherited Create(AMetaData);
   FMetaType:=mtFKey;
   FRefFields:=TStringList.Create;
   FMainTable:='';
@@ -878,9 +966,9 @@ end;
 
 { TIndexInfo }
 
-constructor TIndexInfo.Create;
+constructor TIndexInfo.Create(AMetaData: TMetaData);
 begin
-  inherited Create;
+  inherited Create(AMetaData);
   FMetaType:=mtIndex;
   FAskending:=True;
   FTableName:='';
@@ -913,9 +1001,9 @@ end;
 
 { TFieldInfo }
 
-constructor TFieldInfo.Create;
+constructor TFieldInfo.Create(AMetaData: TMetaData);
 begin
-  inherited Create;
+  inherited Create(AMetaData);
   FMetaType:=mtField;
   FPosition:=-1;
   FUpdateFlag:=False;
@@ -928,6 +1016,31 @@ end;
 destructor TFieldInfo.Destroy;
 begin
   inherited Destroy;
+end;
+
+function TFieldInfo.GetFieldInfo: string;
+var di:TDomainInfo;
+begin
+  Result:='Unk';
+  di:=FMetaData.GetDomains(FDomainInfo);
+  if di = nil then begin
+    Result := 'NULL DOMAIN ' + FName;
+    EXIT;
+  end;
+  if di.SystemName then
+    Result:=di.GetFieldInfo
+  else
+    Result:=di.Name;
+  if NullFlag then begin
+    if Pos('NOT NULL',Result)=-1 then
+      Result:=Result + ' NOT NULL';
+  end;
+  if DefValue<>'' then
+    Result:=Result + ' '+DefValue;
+  if Check<>'' then
+    Result:=Result+' '+Check;
+  if AutoInc<>aimNone then
+    Result:=Result + ' AUTOINC';
 end;
 
 end.
