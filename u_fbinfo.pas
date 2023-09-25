@@ -90,14 +90,6 @@ type
   //эти 2 класса пееропределяются только в случае, если они должны поддерживать
   //иное взаимодействие с пользователем, нежели базовое, например, доп. команды пользователя
 
-  { TFBItemsList }
-
-  TFBItemsList = class(TFBItem)
-    protected
-      function HasData: boolean; override;
-      procedure CreateChildren;override;
-  end;
-
   { TFBChildItem }
 
   TFBChildItem = class(TFBItem)
@@ -106,6 +98,23 @@ type
       function HasChildren: boolean; override;
       procedure CreateData; override;
   end;
+
+  TChildClass = class of TFBChildItem;
+
+  { TFBItemsList }
+
+  TFBItemsList = class(TFBItem)
+    private
+      FChildClass:TChildClass;
+    protected
+      function HasData: boolean; override;
+      procedure CreateChildren;override;
+    public
+      constructor Create(ARoot: TDBBaseItem=nil; AMetaType:TMetaType = mtUnk);override;
+
+  end;
+
+
 
   { TFBTable }
 
@@ -121,10 +130,6 @@ implementation
 
 uses u_data;
 
-
-{  TDataType = (dtUnk, dtSmallInt, dtInteger, dtBigInt, dtFloat, dtDate, dtTime,
-    dtTimeStamp, dtChar, dtVarChar, dtDoublePrec, dtBlob, dtDecimal, dtNumeric);
-}
 { TFBChildItem }
 
 function TFBChildItem.HasData: boolean;
@@ -164,11 +169,17 @@ begin
   SL:=TFBDB(FRootItem).FBConnInfo.MetaData.GetNamesList(FMetaSupport);
   if SL=nil then Exit;
   for I:=0 to SL.Count-1 do begin
-    T:=TFBChildItem.Create(Self.FRootItem, FMetaSupport);
+    T:=FChildClass.Create(Self.FRootItem, FMetaSupport);
     T.FDisplayName:=SL[I];
     FItems.Add(T);
   end;
   SL.Free;
+end;
+
+constructor TFBItemsList.Create(ARoot: TDBBaseItem; AMetaType: TMetaType);
+begin
+  inherited Create(ARoot, AMetaType);
+  FChildClass:=TFBChildItem;
 end;
 
 { TFBIndex }
@@ -592,7 +603,7 @@ end;
 
 function TFBTable.GetSupported: TItemFeatures;
 begin
-  Result:=[ifGetSelect,ifGetSQL,ifUpdateChildren];
+  Result:=[ifGetSelect, ifGetSQL,ifUpdateChildren];
 end;
 
 function TFBTable.GetSelect: string;
@@ -662,6 +673,7 @@ begin
 end;
 
 procedure TFBDB.CreateChildren;
+var I:Integer;
 begin
   //таблицы, домены, вьюхи, процедуры, триггеры, генераторы, индексы
   Log('FBDB - CreateChildren');
@@ -670,7 +682,8 @@ begin
   if FItems <> nil then Exit;
   FItems:=TDBItemsList.Create(True);
   //FItems.Add(TFBTableList.Create(Self));
-  FItems.Add(TFBItemsList.Create(Self, mtTable));
+  I:=FItems.Add(TFBItemsList.Create(Self, mtTable));
+  (FItems[I] as TFBItemsList).FChildClass:=TFBTable;
   FItems.Add(TFBItemsList.Create(Self, mtView));
   FItems.Add(TFBItemsList.Create(Self,mtDomain));
   FItems.Add(TFBItemsList.Create(Self,mtIndex));

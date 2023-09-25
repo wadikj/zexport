@@ -232,6 +232,7 @@
         <Filename Value="u_linkparams.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="frmParamsLinks"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="u_linkParams"/>
       </Unit27>
