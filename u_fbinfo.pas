@@ -182,8 +182,6 @@ begin
   FChildClass:=TFBChildItem;
 end;
 
-{ TFBIndex }
-
 { TFBConnectionInfo }
 
 function TFBConnectionInfo.GetFieldType(ATypeIndex: Integer): TDataType;
@@ -274,19 +272,6 @@ begin
     DI.NullFlag:=True;
   F:=DS.FieldByName('RDB$FIELD_TYPE');
   DI.DataType:=GetFieldType(F.AsInteger);
-{  case F.AsInteger of
-    7:DI.DataType:=dtSmallInt;
-    8:DI.DataType:=dtInteger;
-    10:DI.DataType:=dtFloat;
-    12:DI.DataType:=dtDate;
-    13:DI.DataType:=dtSmallInt;
-    14:DI.DataType:=dtChar;
-    16:DI.DataType:=dtBigInt;
-    27:DI.DataType:=dtDoublePrec;
-    35:DI.DataType:=dtTimeStamp;
-    37:DI.DataType:=dtVarChar;
-    261:DI.DataType:=dtBlob;
-  end; }
   F:=DS.FieldByName('RDB$FIELD_SUB_TYPE');
   V:=0;
   if not F.IsNull then V:=F.AsInteger;
@@ -359,12 +344,12 @@ begin
     'from RDB$RELATION_FIELDS where rdb$field_name = ''' + FI.Name+''' and '+
     'RDB$RELATION_NAME = '''+FI.Table+'''';
   DS:=GetDS(SQL);
-  FI.DomainInfo:=DS.FieldByName('RDB$FIELD_SOURCE').AsString;
-  FI.BaseField:=DS.FieldByName('rdb$base_field').AsString;
+  FI.DomainInfo:=DS.FieldByName('RDB$FIELD_SOURCE').AsString.Trim;
+  FI.BaseField:=DS.FieldByName('rdb$base_field').AsString.Trim;
   FI.Position:=DS.FieldByName('rdb$field_position').AsInteger;
   FI.UpdateFlag:=DS.FieldByName('RDB$UPDATE_FLAG').AsInteger = 1;
   FI.NullFlag:=DS.FieldByName('RDB$NULL_FLAG').AsInteger=1;
-  FI.DefValue:=DS.FieldByName('rdb$default_source').AsString;
+  FI.DefValue:=DS.FieldByName('rdb$default_source').AsString.Trim;
   FI.ViewContext:=DS.FieldByName('rdb$view_context').AsInteger;
   FI.Loaded:=True;
 end;
@@ -399,8 +384,8 @@ begin
     raise EInvalidObject('Invalid index '+AIndex.Name);
   AI.Askending:=DS.FieldByName('RDB$INDEX_TYPE').AsInteger<>1;
   AI.Unique:=DS.FieldByName('RDB$UNIQUE_FLAG').AsInteger=1;
-  AI.TableName:=DS.FieldByName('RDB$RELATION_NAME').AsString;
-  AI.ForeignKey:=DS.FieldByName('RDB$FOREIGN_KEY').AsString;
+  AI.TableName:=DS.FieldByName('RDB$RELATION_NAME').AsString.Trim;
+  AI.ForeignKey:=DS.FieldByName('RDB$FOREIGN_KEY').AsString.Trim;
   DS.Close;
   DS.SQL.Text:='select rdb$field_name from rdb$index_segments '+
     ' where RDB$INDEX_NAME=''%s'' order by RDB$field_POSITION'.Format([AI.Name]);
@@ -539,12 +524,49 @@ begin
     fi.DomainInfo:=Q.FieldByName('rdb$field_source').AsString.Trim;
     fi.Position:=Q.FieldByName('rdb$field_position').AsInteger;
     fi.UpdateFlag:=Q.FieldByName('rdb$update_flag').AsInteger=0;
-    fi.DefValue:=Q.FieldByName('rdb$default_source').AsString;
+    fi.DefValue:=Q.FieldByName('rdb$default_source').AsString.Trim;
     fi.SystemFlag:=Q.FieldByName('rdb$system_flag').AsInteger<>0;
     fi.NullFlag:=Q.FieldByName('rdb$null_flag').AsInteger=1;;
     Q.Next;
   end;
   //need primary, foreign keys, checks and autoinc
+  //primary
+  S:='select rdb$index_name from rdb$relation_constraints ' +
+    'where rdb$constraint_type = ''PRIMARY KEY'' and RDB$relation_name = ''' + ATable.Name + '''';
+  Q.Close;
+  Q.SQL.Text:=S;
+  Q.Open;
+  if Q.RecordCount<>0 then
+    ti.PrimaryKey:=Q.Fields[0].AsString.Trim;
+  Q.Close;
+  //foreign keys
+  S:=' select RDB$INDEX_NAME from rdb$relation_constraints '+
+    ' where rdb$constraint_type = ''FOREIGN KEY'' and rdb$relation_name = '''+ ATable.Name + '''';
+  Q.SQL.Text:=S;
+  Q.Open;
+  //for getting info of linked fields, use Indexes and FKeys(?)
+  while not Q.EOF do begin
+    ti.ForeignKeys.Add(Q.Fields[0].AsString.Trim);
+    Q.Next;
+  end;
+  Q.Close;
+
+  //checks, if name starting with 'INTEG_', it is system name
+  S:='select distinct r.rdb$constraint_name cname, cast (rdb$trigger_source as varchar(100)) ch, t.rdb$relation_name rel '+
+    ' from rdb$relation_constraints r join rdb$check_constraints c on r.rdb$constraint_name = c.rdb$constraint_name ' +
+    ' join  rdb$triggers t on c.rdb$trigger_name = t.rdb$trigger_name '+
+    ' where rdb$constraint_type=''CHECK'' and r.rdb$relation_name = '''+ ATable.Name + '''';
+  Q.SQL.Text:=S;
+  Q.Open;
+  while not Q.EOF do begin
+    S:=Q.Fields[0].AsString.Trim + ': ';
+    if Pos('INTEG_',S) = 1 then
+      S:='';
+    S:=S + Q.Fields[1].AsString.Trim;
+    ti.Checks.Add(S);
+    Q.Next;
+  end;
+  Q.Close;
   CloseDS(Q);
 end;
 
@@ -661,13 +683,11 @@ end;
 { TFBDB }
 
 function TFBDB.GetDS(ASQL: string): TSQLQuery;
-//var T:TSQLTransaction;
 begin
   Result:=FBConnInfo.GetDS(ASQL);
 end;
 
 procedure TFBDB.CloseDS(AQuery: TSQLQuery);
-//var T:TDBTransaction;
 begin
   FBConnInfo.CloseDS(AQuery);
 end;

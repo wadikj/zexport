@@ -346,6 +346,7 @@ type
       property Unique:Boolean read FUnique write FUnique;
       property Askending:boolean read FAskending write FAskending;
       property ForeignKey:string read FForeignKey write FForeignKey;
+      function GetFieldList:string;
       function GetData(Level:Integer = 0):TStrings;override;
   end;
 
@@ -377,6 +378,7 @@ type
 
   TTableInfo = class(TBaseMetaInfo)
     private
+      FChecks: TStringList;
       FForeignKeys: TStringList;
       FIndices: TStringList;
       FPrimaryKey: string;
@@ -393,6 +395,7 @@ type
       property ForeignKeys:TStringList read FForeignKeys;//foreign keys
       property Triggers:TStringList read FTriggers;//list of trigger names on this table
       property Indices:TStringList read FIndices;//list of index names on this table
+      property Checks:TStringList read FChecks;
       function AddField:TFieldInfo;
       procedure DeleteField(Info:TFieldInfo);
       function GetData(Level: Integer=0): TStrings; override;
@@ -626,8 +629,10 @@ begin
     J:=FArray[I].IndexOf(AName);
     if J<>-1 then begin
       Result:=FArray[I].Data[J];
-      if not Result.FLoaded then
+      if not Result.FLoaded then begin
         DoFillObject(Result);
+        Result.FLoaded:=True;
+      end;
       Exit;
     end;
   end;
@@ -695,9 +700,15 @@ begin
   Result:=nil;
   if FArray[AMetaType].Count=0 then
     DoGetNames(AMetaType);
-  Result:=FArray[AMetaType].KeyData[AName];
-  if not Result.FLoaded then
-    DoFillObject(Result);
+  try
+    Result:=FArray[AMetaType].KeyData[AName];
+    if not Result.FLoaded then begin
+      DoFillObject(Result);
+      Result.FLoaded:=True;//в двух местах - одно грохнуть надо
+    end;
+  except
+    Log('Not found ' +  MetaNames[AMetaType] + ' named [' +AName + ']');
+  end;
 end;
 
 function TMetaData.GetViews(AName: string): TViewInfo;
@@ -813,6 +824,7 @@ begin
   FPrimaryKey:='';
   FTriggers:= TStringList.Create;
   FFieldInfos:=TObjectList.Create(True);
+  FChecks:=TStringList.Create;
 end;
 
 destructor TTableInfo.Destroy;
@@ -821,6 +833,7 @@ begin
   FIndices.Free;
   FTriggers.Free;
   FFieldInfos.Free;;
+  FChecks.Free;
   inherited Destroy;
 end;
 
@@ -837,10 +850,47 @@ end;
 
 function TTableInfo.GetData(Level: Integer): TStrings;
 var I:Integer;
+    ii:TIndexInfo;
+    S:string;
 begin
   Result:=inherited GetData(Level);
   for I:=0 to FieldCount-1 do
     Result.Add(Fields[I].Name+': '+Fields[I].GetFieldInfo);
+  //primary key
+  if PrimaryKey<>'' then begin
+    ii:=FMetaData.GetIndices(PrimaryKey);
+    if ii<> nil then
+      Result.Add('PRIMARY KEY: ' + ii.GetFieldList)
+    else
+      Result.Add('PRIMARY INDEX NOT FOUND (%s)'.Format([PrimaryKey]));
+  end;
+  //foreign keys
+  for I:=0 to FForeignKeys.Count-1 do begin
+    S:='FOREIGN KEY: ' ;
+    ii:=FMetaData.GetIndices(FForeignKeys[i]);
+    if ii<>nil then
+      S:=S+'['+FForeignKeys[I]+']'+ii.GetFieldList
+    else begin
+      S:=S+'INDEX (%s) not found - '.Format([FForeignKeys[i]]);
+      Result.Add(S);
+      Continue;
+    end;
+    S:=S + ' REF TO ['+ii.ForeignKey+'] ';
+    ii:=FMetaData.GetIndices(ii.ForeignKey);
+    if ii<> nil then
+      S:=S + ii.TableName+'('+ii.GetFieldList+')'
+    else
+      S:=S + '(REF NOT FOUND)';
+    Result.Add(S);
+  end;
+  //checks
+  for I:=0 to FChecks.Count-1 do begin
+    S:=FChecks[I];
+    if Pos(':',S)>1 then
+      Result.Add('CHECK '+S)
+    else
+      Result.Add('CHECK: '+S);
+  end;
 end;
 
 { TDomainInfo }
@@ -983,13 +1033,18 @@ begin
   inherited Destroy;
 end;
 
+function TIndexInfo.GetFieldList: string;
+begin
+  Result:=string('').Join(', ',Fields.ToStringArray);
+end;
+
 function TIndexInfo.GetData(Level: Integer): TStrings;
 begin
   Result:=inherited GetData(Level);
   Result.Add('TABLE: ' + TableName);
-  Result.Add('FIELDS: '+ string('').Join(', ',Fields.ToStringArray));
+  Result.Add('FIELDS: '+ GetFieldList);
   if ForeignKey<>'' then
-    Result.Add('FOREIGN KEY: '+ ForeignKey);
+    Result.Add('FOREIGN KEY: '+ ForeignKey);//if exists!
   if Unique then
     Result.Add('UNIQUE');
   if Askending then
@@ -1032,7 +1087,7 @@ begin
   else
     Result:=di.Name;
   if NullFlag then begin
-    if Pos('NOT NULL',Result)=-1 then
+    //if Pos('NOT NULL',Result)=-1 then
       Result:=Result + ' NOT NULL';
   end;
   if DefValue<>'' then
