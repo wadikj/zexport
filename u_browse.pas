@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, ExtCtrls, StdCtrls,
-  SHDocVw_1_1_TLB, Dialogs, ComCtrls, Buttons, activexcontainer, u_data;
+  SHDocVw_1_1_TLB, Dialogs, ComCtrls, Buttons, activexcontainer, u_data, Types;
 
 type
 
@@ -30,6 +30,9 @@ type
       var URL: OleVariant);
     procedure BrowserNavigateComplete2(Sender: TObject; pDisp: IDispatch;
       var URL: OleVariant);
+    procedure BrowserNavigateError(Sender: TObject; pDisp: IDispatch;
+      var URL: OleVariant; var Frame: OleVariant; var StatusCode: OleVariant;
+      var Cancel: WordBool);
     procedure BrowserNewWindow3(Sender: TObject; var ppDisp: IDispatch;
       var Cancel: WordBool; dwFlags: LongWord; bstrUrlContext: WideString;
       bstrUrl: WideString);
@@ -152,7 +155,7 @@ procedure TfrBrowse.BrowserBeforeNavigate2(Sender: TObject; pDisp: IDispatch;
   var URL: OleVariant; var Flags: OleVariant; var TargetFrameName: OleVariant;
   var PostData: OleVariant; var Headers: OleVariant; var Cancel: WordBool);
 begin
-  //frmMain.Log('browser before nav', URL);
+  frmMain.Log('browser before nav', URL);
 end;
 
 procedure TfrBrowse.BrowserDocumentComplete(Sender: TObject; pDisp: IDispatch;
@@ -166,6 +169,13 @@ procedure TfrBrowse.BrowserNavigateComplete2(Sender: TObject; pDisp: IDispatch;
 begin
   ComboBox1.Text:=Browser.OleServer.Get_LocationURL;
   //frmMain.Log('browser nav complete', Browser.OleServer.Get_LocationURL);
+end;
+
+procedure TfrBrowse.BrowserNavigateError(Sender: TObject; pDisp: IDispatch;
+  var URL: OleVariant; var Frame: OleVariant; var StatusCode: OleVariant;
+  var Cancel: WordBool);
+begin
+  //frmMain.Log('browser nav error',Url);
 end;
 
 procedure TfrBrowse.BrowserNewWindow3(Sender: TObject; var ppDisp: IDispatch;
@@ -191,7 +201,7 @@ procedure TfrBrowse.BrowserStatusTextChange(Sender: TObject; Text_: WideString);
 begin
   if Assigned(FOnStatusChange) then
     FOnStatusChange((Parent as TTabSheet), UTF8Encode(Text_));
-//  frmMain.StatusBar1.SimpleText:=UTF8Encode(Text_);
+  frmMain.Log('ie',UTF8Encode(Text_));
 end;
 
 procedure TfrBrowse.BrowserTitleChange(Sender: TObject; Text_: WideString);

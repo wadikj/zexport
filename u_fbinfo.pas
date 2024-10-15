@@ -148,7 +148,7 @@ begin
   if FData<>nil then Exit;
   mi:=TFBDB(FRootItem).FBConnInfo.MetaData.GetTypedObject(FMetaSupport,FDisplayName);
   if mi=nil then Exit;
-  FData:=mi.GetData(0);
+  FData:=mi.GetData(gdlFieldDefs);
 end;
 
 { TFBItemsList }
@@ -630,11 +630,22 @@ end;
 
 function TFBTable.GetSelect: string;
 var I:Integer;
+    d:TStrings;
+    sa:TStringArray;
+    mi:TBaseMetaInfo;
 begin
-  Result:=FData[0].Split(':')[0];
-  for I:=1 to FData.Count-1 do
-    Result:=Result + ', ' + FData[I].Split(':')[0];
-  Result:='select '+Result+#13+'from '+DisplayName;
+  mi:=GetDB.FBConnInfo.MetaData.GetTypedObject(mtTable,FDisplayName);
+  if mi<>nil then
+    d:=mi.GetData(gdlFieldList);
+  if d = nil then Exit;
+  try
+    Result:=d[0];
+    for I:=1 to d.Count-1 do
+      Result:=Result + ', ' + d[I];
+    Result:='select '+Result+#13+'from '+DisplayName;
+  finally
+    d.Free;
+  end;
 end;
 
 
@@ -666,6 +677,8 @@ begin
     TIBConnection(Result.FConnection).Password:=dbc.Params.Values['password'];
   if dbc.Params.IndexOfName('lc_ctype')<>-1 then
     TIBConnection(Result.FConnection).CharSet:=dbc.Params.Values['lc_ctype'];
+  if dbc.Params.IndexOfName('port')<>-1 then
+    TIBConnection(Result.FConnection).Port:=StrToInt(dbc.Params.Values['port']);
 end;
 
 function TFBConnType.GetMultiTransactions: boolean;

@@ -23,6 +23,8 @@ object frBrowse: TfrBrowse
     OnTitleChange = BrowserTitleChange
     OnBeforeNavigate2 = BrowserBeforeNavigate2
     OnNavigateComplete2 = BrowserNavigateComplete2
+    OnDocumentComplete = BrowserDocumentComplete
+    OnNavigateError = BrowserNavigateError
     OnUpdatePageStatus = BrowserUpdatePageStatus
     OnNewWindow3 = BrowserNewWindow3
   end

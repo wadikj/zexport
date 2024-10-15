@@ -1172,7 +1172,7 @@ object frSQL: TfrSQL
   end
   object PopupMenu1: TPopupMenu
     OnPopup = PopupMenu1Popup
-    Left = 66
+    Left = 64
     Top = 173
     object miUpdate: TMenuItem
       Caption = 'Обновить узел'

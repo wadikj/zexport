@@ -147,6 +147,7 @@ begin
   try
     //получаем имя скрипта
     S:=DivStr(AName,'@');
+    if S='' then S:=AParent.FName;
     scr:=TSimpleScript.Create(S);
     I:=0;
     if AName<>'' then begin
@@ -164,7 +165,7 @@ begin
       scr.RunScr(I);
     end;
     scr.Free;
-  except
+  except    //при ошибке цепочка скриптов не уничтожается
     ShowMessage('failed to exec script '+AName);
     if AParent=nil then
       ShowMessage('parent = nil!!!');
@@ -284,6 +285,7 @@ begin
   FName:=AName;
   FParent:=nil;
   FVars:=nil;
+  FData:=nil;
   //и тут надо сразу же загрузить этот скрипт
   //S:=Options.GetFullPath(Options.ScrDir,AName);
   S:=Options.ActivePrj.FullScrDir+'\'+AName;
@@ -916,6 +918,7 @@ end;
 
 procedure TSimpleScript.FreeData;
 begin
+  Log('freedata at line' + IntToStr(FCurrStr));
   if FParent<>nil then
     FParent.FreeData
   else

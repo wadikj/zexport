@@ -231,6 +231,8 @@ type
 
   TTriggerEvents = set of TTriggerEvent;
 
+  TGetDataLevel = (gdlFieldDefs, gdlFieldList, gdlCreateSQL);
+
   //если попытаться получить инфу об метаобъекте, которого нет в БД, вызывается
   //исключение - EInvalidObject;
 
@@ -262,7 +264,7 @@ type
       property Loaded:boolean read FLoaded write FLoaded; // данный элемент полностью загружен
       property MetaType:TMetaType read FMetaType write FMetaType; // тип меты, в общем то можно было обойтись и типом класса - они должэны дублировать друг друга
       property SystemName:boolean read FSystemName write FSystemName;//имя элемента задано системой
-      function GetData(Level:Integer = 0):TStrings;virtual;
+      function GetData(Level:TGetDataLevel = gdlFieldDefs):TStrings;virtual;
   end;
 
   TBaseMetaClass = class of TBaseMetaInfo;
@@ -295,7 +297,7 @@ type
       property Check:string read FCheck write FCheck;
       property DefValue:string read FDefValue write FDefValue;
       property Computed:string read FComputed write FComputed;
-      function GetData(Level:Integer = 0):TStrings;override;
+      function GetData(Level:TGetDataLevel = gdlFieldDefs):TStrings;override;
       function GetFieldInfo:string;
   end;
 
@@ -347,7 +349,7 @@ type
       property Askending:boolean read FAskending write FAskending;
       property ForeignKey:string read FForeignKey write FForeignKey;
       function GetFieldList:string;
-      function GetData(Level:Integer = 0):TStrings;override;
+      function GetData(Level:TGetDataLevel = gdlFieldDefs):TStrings;override;
   end;
 
   { TFKeyInfo }
@@ -398,7 +400,7 @@ type
       property Checks:TStringList read FChecks;
       function AddField:TFieldInfo;
       procedure DeleteField(Info:TFieldInfo);
-      function GetData(Level: Integer=0): TStrings; override;
+      function GetData(Level: TGetDataLevel = gdlFieldDefs): TStrings; override;
     end;
 
 
@@ -419,7 +421,7 @@ type
       property Triggers:TStringList read FTriggers;//list of trigger names on this table
       property Tables:TStringList read FTables;
       function AddField:TFieldInfo;
-      function GetData(Level: Integer=0): TStrings; override;
+      function GetData(Level: TGetDataLevel = gdlFieldDefs): TStrings; override;
   end;
 
 
@@ -442,7 +444,7 @@ type
       property EventSupport:TTriggerEvents read FEventSupport write FEventSupport; //events was trigger run
       property CheckSupport:boolean read FCheckSupport write FCheckSupport;//trigger used for constraints support
       property Text:string read FText write FText;//trigger text
-      function GetData(Level:Integer = 0):TStrings;override;
+      function GetData(Level:TGetDataLevel = gdlFieldDefs):TStrings;override;
   end;
 
   TProcInfo = class (TBaseMetaInfo)
@@ -461,7 +463,7 @@ type
       destructor Destroy; override;
       property GenID:Integer read FGenID write FGenID;
       property Value:Integer read FValue write FValue;
-      function GetData(Level: Integer=0): TStrings; override;
+      function GetData(Level: TGetDataLevel = gdlFieldDefs): TStrings; override;
   end;
 
   TGetNamesListEvent = procedure (AMetaType:TMetaType; AList:TStrings; UseFlag:Boolean) of object;
@@ -544,7 +546,7 @@ begin
   inherited Destroy;
 end;
 
-function TGenInfo.GetData(Level: Integer): TStrings;
+function TGenInfo.GetData(Level: TGetDataLevel): TStrings;
 begin
   Result:=inherited GetData(Level);
   Result.Add('Name: ' + Name);
@@ -587,7 +589,7 @@ begin
   FFields.Add(Result);
 end;
 
-function TViewInfo.GetData(Level: Integer): TStrings;
+function TViewInfo.GetData(Level: TGetDataLevel): TStrings;
 var FI:TFieldInfo;
     S:string;
     I:Integer;
@@ -786,7 +788,7 @@ begin
   inherited Destroy;
 end;
 
-function TTriggerInfo.GetData(Level: Integer): TStrings;
+function TTriggerInfo.GetData(Level: TGetDataLevel): TStrings;
 var S:string;
     I:TTriggerEvent;
 begin
@@ -848,12 +850,18 @@ begin
   FFieldInfos.Remove(Info);
 end;
 
-function TTableInfo.GetData(Level: Integer): TStrings;
+function TTableInfo.GetData(Level: TGetDataLevel): TStrings;
 var I:Integer;
     ii:TIndexInfo;
     S:string;
 begin
   Result:=inherited GetData(Level);
+  if Level = gdlFieldList then begin
+    for I:=0 to FieldCount-1 do
+      Result.Add(Fields[I].Name);
+    Exit;
+  end;
+  if Level<>gdlFieldDefs then Exit; // остальное создается в потомках конктретной БД
   for I:=0 to FieldCount-1 do
     Result.Add(Fields[I].Name+': '+Fields[I].GetFieldInfo);
   //primary key
@@ -917,7 +925,7 @@ begin
   FComputed:='';
 end;
 
-function TDomainInfo.GetData(Level: Integer): TStrings;
+function TDomainInfo.GetData(Level: TGetDataLevel): TStrings;
 var S:string;
 begin
   Result:=inherited GetData(Level);
@@ -990,7 +998,7 @@ begin
   Result.FMetaType:=FMetaType;
 end;
 
-function TBaseMetaInfo.GetData(Level: Integer): TStrings;
+function TBaseMetaInfo.GetData(Level: TGetDataLevel): TStrings;
 begin
   Result:=TStringList.Create;
 end;
@@ -1038,7 +1046,7 @@ begin
   Result:=string('').Join(', ',Fields.ToStringArray);
 end;
 
-function TIndexInfo.GetData(Level: Integer): TStrings;
+function TIndexInfo.GetData(Level: TGetDataLevel): TStrings;
 begin
   Result:=inherited GetData(Level);
   Result.Add('TABLE: ' + TableName);
